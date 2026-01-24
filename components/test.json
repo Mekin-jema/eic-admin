@@ -1,0 +1,34 @@
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "totalRegistrations": 10,
+      "recentRegistrations": 10,
+      "documentUploads": 0,
+      "pendingDocuments": 10
+    },
+    "centerDistribution": [{ "_id": "Bole Brass, Addis Ababa", "count": 10 }],
+    "shiftDistribution": [
+      { "_id": "shift1", "count": 5 },
+      { "_id": "shift2", "count": 5 }
+    ],
+    "trainingTimeDistribution": [
+      { "_id": "morning", "count": 4 },
+      { "_id": "afternoon", "count": 3 },
+      { "_id": "evening", "count": 3 }
+    ],
+    "dailyRegistrations": [{ "_id": "2025-10-18", "count": 10 }],
+    "locationDistribution": [
+      { "_id": "addis ababa, akaki", "count": 2 },
+      { "_id": "addis ababa, gullele", "count": 1 },
+      { "_id": "addis ababa, bole", "count": 1 },
+      { "_id": "addis ababa, arada", "count": 1 },
+      { "_id": "addis ababa, kolfe", "count": 1 },
+      { "_id": "addis ababa, lideta", "count": 1 },
+      { "_id": "addis ababa, nifas silk", "count": 1 },
+      { "_id": "addis ababa, kirkos", "count": 1 },
+      { "_id": "addis ababa, yeka", "count": 1 }
+    ],
+    "documentStatus": [{ "_id": "missing", "count": 10 }]
+  }
+}
