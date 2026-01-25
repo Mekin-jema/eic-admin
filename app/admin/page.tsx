@@ -2,14 +2,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Building, CheckCircle, Download, Globe, RefreshCw, Settings, TrendingUp, UserCheck, Users, XCircle } from 'lucide-react';
+import { Download, Globe, RefreshCw, Settings, UserCheck, Users, Building, BarChart3, TrendingUp } from 'lucide-react';
 import { CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -146,8 +145,6 @@ export default function AdminDashboard() {
   const topType = useMemo(() => {
     return [...typeData].sort((a, b) => b.value - a.value)[0]?.name || '—';
   }, [typeData]);
-
-  const attendeeList = attendees.slice(0, 20);
 
   return (
     <div className="container mx-auto py-6 space-y-6 pl-9 pr-4">

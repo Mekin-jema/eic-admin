@@ -45,7 +45,6 @@ import {
   Copy,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEicAdminStore } from '@/store/useEicAdminStore';
 import Loading from './loading';
 import {
@@ -199,13 +198,6 @@ export default function AttendeesPage() {
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedAttendees = processedAttendees.slice(startIndex, endIndex);
-
-  const stats = {
-    total: attendees.length,
-    checkedIn: attendees.filter((a) => a.isCheckedIn).length,
-    vip: attendees.filter((a) => a.registrationType === 'VIP').length,
-    speakers: attendees.filter((a) => a.registrationType === 'Speaker').length,
-  };
 
   // Handle sort click
   const handleSort = (columnId: keyof Attendee) => {

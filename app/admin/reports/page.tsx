@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Download, Printer, FileText, Users, CheckCircle, Globe, 
-  Building, Target, Calendar, CreditCard, BarChart3, Filter,
-  Search, Mail, TrendingUp, Eye, Share2, Clock, Star,
+  Target, Calendar, CreditCard, Filter,
+  Search, Eye, Share2, Clock,
   FileSpreadsheet, FilePieChart, FileBarChart, FileJson
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';

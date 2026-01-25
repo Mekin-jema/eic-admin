@@ -1,6 +1,6 @@
 // app/admin/attendees/page.tsx
 'use client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
+  DropdownMenuSeparator, DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
@@ -17,13 +17,13 @@ import {
 import { 
   Users, UserPlus, Download, Filter, Search, Eye, Edit, 
   Mail, Trash2, MoreVertical, CheckCircle, XCircle, 
-  MapPin, Building, Tag, Phone, Calendar, UserCheck,
+  MapPin, Building, Phone, UserCheck,
   QrCode, Star, MessageSquare
 } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Mock data
 const generateAttendees = (count: number) => {

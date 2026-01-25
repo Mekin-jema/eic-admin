@@ -7,10 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 
 import { 
-  Mail, Send, Users, Filter, Clock, BarChart3, Eye, 
-  Download, Printer, Copy, CheckCircle, AlertCircle,
+  Mail, Send, Users, Clock, BarChart3, Eye, 
+  Download, Copy, CheckCircle, AlertCircle,
   Phone, MessageSquare, Bell, Calendar, UserCheck,
-  Search, Star, TrendingUp, History, Share2, Paperclip,
+  Star, TrendingUp, History, Paperclip,
   Image as ImageIcon, FileText, Smile
 } from 'lucide-react';
 import { 
