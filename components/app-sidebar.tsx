@@ -4,7 +4,7 @@
 import * as React from "react"
 import {
   Users,
-  CheckCircle,
+
   BarChart3,
   FileText,
   Mail,
@@ -41,12 +41,7 @@ export const data = {
       icon: Users,
       badge: "1,247",
     },
-    {
-      title: "Check-in",
-      url: "/admin/checkin",
-      icon: CheckCircle,
-      badge: "892",
-    },
+ 
     {
       title: "Analytics",
       url: "/admin/analytics",
