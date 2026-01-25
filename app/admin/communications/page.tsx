@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+
 import { 
   Mail, Send, Users, Filter, Clock, BarChart3, Eye, 
   Download, Printer, Copy, CheckCircle, AlertCircle,
@@ -20,6 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useState } from 'react';
+import { Textarea } from '@/components/ui/textarea';
 
 const emailTemplates = [
   {

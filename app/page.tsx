@@ -71,7 +71,7 @@ export default function HeroSection() {
 
             {/* ✅ Mobile link */}
             <Link
-              href="https://survey-admin-panel.coolify.powerethio.com/admin/dashboard"
+              href="/admin"
               target="_blank"
               rel="noopener noreferrer"
             >

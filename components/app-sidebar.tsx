@@ -8,19 +8,7 @@ import {
   BarChart3,
   FileText,
   Mail,
-  Filter,
-  Settings,
-  Download,
-  Eye,
-  QrCode,
-  UserPlus,
-  Globe,
-  Tag,
-  Bell,
-  Phone,
-  Calendar,
   PieChart,
-  TrendingUp,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -34,7 +22,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import Image from "next/image"
 
 export const data = {
   user: {
@@ -135,7 +122,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="">
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
