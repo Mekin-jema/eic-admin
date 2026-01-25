@@ -1,48 +1,59 @@
 // app/admin/dashboard/page.tsx
-// Recharts charts
 'use client';
-// import AdminDashboard from '@/components/admin/dashboard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Download, 
-  Filter, 
-  Users, 
-  UserCheck, 
-  Globe, 
-  Building, 
-  TrendingUp, 
-  Calendar,
-  Mail,
-  Phone,
-  MapPin,
-  CheckCircle,
-  XCircle,
-  MoreVertical,
-  Eye,
-  Edit,
-  Trash2,
+
+import { useEffect, useMemo, useState } from 'react';
+import {
   BarChart3,
-  LineChartIcon,
-  PieChartIcon,
-  Table,
+  Building,
+  CheckCircle,
+  Download,
+  Edit,
+  Eye,
+  Filter,
+  Globe,
+  MapPin,
+  MoreVertical,
+  PieChart as PieChartIcon,
+  TrendingUp,
+  RefreshCw,
   Settings,
-  RefreshCw
+  Table,
+  Calendar,
+  Trash2,
+  UserCheck,
+  Users,
+  XCircle,
 } from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  AreaChart,
+  Area,
+} from 'recharts';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -50,7 +61,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import {
   Table as UITable,
   TableBody,
@@ -59,103 +69,144 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-
-// Mock data generator
-const generateMockAttendees = (count = 150) => {
-  const countries = ['Ethiopia', 'USA', 'UK', 'China', 'India', 'Kenya', 'UAE', 'Germany', 'France', 'South Africa'];
-  const occupations = ['Investor', 'CEO', 'Director', 'Manager', 'Analyst', 'Consultant', 'Entrepreneur', 'Government Official'];
-  const organizations = ['Microsoft', 'Google', 'World Bank', 'AfDB', 'Safaricom', 'Dangote', 'MTN', 'Ethio Telecom'];
-  const interests = ['Technology', 'Agriculture', 'Energy', 'Finance', 'Infrastructure', 'Manufacturing', 'Tourism', 'Healthcare'];
-  const registrationTypes = ['VIP', 'Standard', 'Speaker', 'Exhibitor', 'Media', 'Student'];
-  const hearAboutOptions = ['Social Media', 'Email', 'Referral', 'Website', 'Conference', 'News'];
-  
-  return Array.from({ length: count }, (_, i) => ({
-    id: `ATT-${1000 + i}`,
-    firstName: ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Lisa', 'Robert', 'Maria'][i % 8],
-    lastName: ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis'][i % 8],
-    email: `user${i}@example.com`,
-    phoneNumber: `+251-9${Math.floor(Math.random() * 9000000 + 1000000)}`,
-    occupation: occupations[Math.floor(Math.random() * occupations.length)],
-    organization: organizations[Math.floor(Math.random() * organizations.length)],
-    country: countries[Math.floor(Math.random() * countries.length)],
-    hearAboutUs: hearAboutOptions[Math.floor(Math.random() * hearAboutOptions.length)],
-    interests: interests.slice(0, Math.floor(Math.random() * 3) + 1),
-    registrationType: registrationTypes[Math.floor(Math.random() * registrationTypes.length)],
-    groupSize: Math.floor(Math.random() * 5) + 1,
-    isCheckedIn: Math.random() > 0.4,
-    checkInTime: Math.random() > 0.4 ? new Date(Date.now() - Math.random() * 86400000).toISOString() : null,
-    createdAt: new Date(Date.now() - Math.random() * 604800000).toISOString(),
-  }));
-};
-
-
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from 'recharts';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  AttendeeRegistration,
+  AttendanceSummaryResponse,
+  getAttendees,
+  getAttendanceSummary,
+} from '@/lib/adminApi';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function AdminDashboard() {
-  const attendees = generateMockAttendees();
-  
+  const [attendees, setAttendees] = useState<AttendeeRegistration[]>([]);
+  const [summary, setSummary] = useState<AttendanceSummaryResponse['summary'] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [attendeeRes, summaryRes] = await Promise.all([getAttendees(), getAttendanceSummary()]);
+      setAttendees(attendeeRes.data || []);
+      setSummary(summaryRes.summary);
+    } catch (err) {
+      setError('Failed to load dashboard data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const totalAttendees = attendees.length;
-  const checkedIn = attendees.filter(a => a.isCheckedIn).length;
-  const checkInRate = Math.round((checkedIn / totalAttendees) * 100);
-  const uniqueCountries = [...new Set(attendees.map(a => a.country))].length;
-  const uniqueOrganizations = [...new Set(attendees.filter(a => a.organization).map(a => a.organization))].length;
+  const checkedInAttendees = attendees.filter((a) => a.isCheckedIn).length;
+  const overallTotal = summary?.totalUsers ?? totalAttendees;
+  const overallChecked = summary?.checkedInUsers ?? checkedInAttendees;
+  const checkInRate = overallTotal > 0 ? Math.round((overallChecked / overallTotal) * 100) : 0;
+  const uniqueCountries = useMemo(
+    () => new Set(attendees.map((a) => a.country).filter(Boolean)).size,
+    [attendees],
+  );
+  const uniqueOrganizations = useMemo(
+    () => new Set(attendees.map((a) => a.organization).filter(Boolean)).size,
+    [attendees],
+  );
 
-  // Statistics calculations
-  const countryDistribution = attendees.reduce((acc, attendee) => {
-    acc[attendee.country] = (acc[attendee.country] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const typeDistribution = attendees.reduce((acc, attendee) => {
-    acc[attendee.registrationType] = (acc[attendee.registrationType] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const interestCounts: Record<string, number> = {};
-  attendees.forEach(attendee => {
-    attendee.interests.forEach((interest: string) => {
-      interestCounts[interest] = (interestCounts[interest] || 0) + 1;
+  const countryDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    attendees.forEach((a) => {
+      if (!a.country) return;
+      counts[a.country] = (counts[a.country] || 0) + 1;
     });
-  });
+    return counts;
+  }, [attendees]);
 
-  const dailyData = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    const dateStr = date.toISOString().split('T')[0];
-    const count = attendees.filter(a => 
-      new Date(a.createdAt).toISOString().split('T')[0] === dateStr
-    ).length;
-    return { date: date.toLocaleDateString('en-US', { weekday: 'short' }), count };
-  });
+  const typeDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    attendees.forEach((a) => {
+      if (!a.registrationType) return;
+      counts[a.registrationType] = (counts[a.registrationType] || 0) + 1;
+    });
+    return counts;
+  }, [attendees]);
 
-  const topCountries = Object.entries(countryDistribution)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([country, count]) => ({ country, count }));
+  const interestCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    attendees.forEach((a) => {
+      (a.interests || []).forEach((interest) => {
+        counts[interest] = (counts[interest] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [attendees]);
 
-  const topInterests = Object.entries(interestCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([interest, count]) => ({ interest, count }));
+  const dailyData = useMemo(() => {
+    const days = 7;
+    const buckets: Record<string, number> = {};
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const key = date.toISOString().split('T')[0];
+      buckets[key] = 0;
+    }
+    attendees.forEach((a) => {
+      const key = a.createdAt?.split('T')[0];
+      if (key && buckets[key] !== undefined) {
+        buckets[key] += 1;
+      }
+    });
+    return Object.entries(buckets).map(([iso, count]) => ({
+      date: new Date(iso).toLocaleDateString('en-US', { weekday: 'short' }),
+      count,
+    }));
+  }, [attendees]);
 
-  const typeData = Object.entries(typeDistribution).map(([name, value]) => ({ name, value }));
+  const topCountries = useMemo(
+    () =>
+      Object.entries(countryDistribution)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([country, count]) => ({ country, count })),
+    [countryDistribution],
+  );
+
+  const topInterests = useMemo(
+    () =>
+      Object.entries(interestCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([interest, count]) => ({ interest, count })),
+    [interestCounts],
+  );
+
+  const typeData = useMemo(
+    () => Object.entries(typeDistribution).map(([name, value]) => ({ name, value })),
+    [typeDistribution],
+  );
+
+  const attendeeList = attendees.slice(0, 20);
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Invest Ethiopia Forum 2026</h1>
           <p className="text-muted-foreground">Admin Dashboard & Analytics</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" disabled={loading}>
             <Download className="h-4 w-4 mr-2" />
             Export Data
           </Button>
@@ -176,7 +227,12 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {error && (
+        <Card>
+          <CardContent className="text-sm text-red-600 py-3">{error}</CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -184,11 +240,8 @@ export default function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalAttendees}</div>
-            <p className="text-xs text-muted-foreground">
-              +12.5% from last week
-            </p>
-            <Progress value={85} className="mt-2" />
+            <div className="text-2xl font-bold">{overallTotal}</div>
+            <p className="text-xs text-muted-foreground">Attendees + Exhibitors + Sponsors</p>
           </CardContent>
         </Card>
 
@@ -198,10 +251,8 @@ export default function AdminDashboard() {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{checkedIn}</div>
-            <p className="text-xs text-muted-foreground">
-              {checkInRate}% check-in rate
-            </p>
+            <div className="text-2xl font-bold">{overallChecked}</div>
+            <p className="text-xs text-muted-foreground">{checkInRate}% check-in rate</p>
             <Progress value={checkInRate} className="mt-2" />
           </CardContent>
         </Card>
@@ -213,9 +264,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{uniqueCountries}</div>
-            <p className="text-xs text-muted-foreground">
-              International diversity
-            </p>
+            <p className="text-xs text-muted-foreground">International diversity</p>
           </CardContent>
         </Card>
 
@@ -226,14 +275,11 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{uniqueOrganizations}</div>
-            <p className="text-xs text-muted-foreground">
-              Unique companies
-            </p>
+            <p className="text-xs text-muted-foreground">Unique companies</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="flex items-center gap-2">
@@ -245,7 +291,7 @@ export default function AdminDashboard() {
             Attendees
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <PieChart className="h-4 w-4" />
+            <PieChartIcon className="h-4 w-4" />
             Analytics
           </TabsTrigger>
           <TabsTrigger value="reports" className="flex items-center gap-2">
@@ -254,7 +300,6 @@ export default function AdminDashboard() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="col-span-4">
@@ -269,13 +314,7 @@ export default function AdminDashboard() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="count" 
-                      stroke="#8884d8" 
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                    />
+                    <Line type="monotone" dataKey="count" stroke="#8884d8" strokeWidth={2} dot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -298,7 +337,9 @@ export default function AdminDashboard() {
                           <p className="text-xs text-muted-foreground">{item.count} attendees</p>
                         </div>
                       </div>
-                      <Badge variant="outline">{Math.round((item.count / totalAttendees) * 100)}%</Badge>
+                      <Badge variant="outline">
+                        {overallTotal ? Math.round((item.count / overallTotal) * 100) : 0}%
+                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -346,7 +387,7 @@ export default function AdminDashboard() {
                         <span className="text-sm font-medium">{item.interest}</span>
                         <span className="text-sm text-muted-foreground">{item.count}</span>
                       </div>
-                      <Progress value={(item.count / totalAttendees) * 100} className="h-2" />
+                      <Progress value={overallTotal ? (item.count / overallTotal) * 100 : 0} className="h-2" />
                     </div>
                   ))}
                 </div>
@@ -368,23 +409,20 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="h-full w-full">
-                        <div 
+                        <div
                           className="h-full w-full rounded-full border-8 border-green-500"
-                          style={{ 
-                            clipPath: `inset(0 ${100 - checkInRate}% 0 0)`,
-                            transform: 'rotate(-90deg)'
-                          }}
+                          style={{ clipPath: `inset(0 ${100 - checkInRate}% 0 0)`, transform: 'rotate(-90deg)' }}
                         />
                       </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div className="rounded-lg border p-3">
-                      <div className="text-2xl font-bold text-green-600">{checkedIn}</div>
+                      <div className="text-2xl font-bold text-green-600">{overallChecked}</div>
                       <div className="text-sm text-muted-foreground">Checked In</div>
                     </div>
                     <div className="rounded-lg border p-3">
-                      <div className="text-2xl font-bold text-gray-600">{totalAttendees - checkedIn}</div>
+                      <div className="text-2xl font-bold text-gray-600">{Math.max(overallTotal - overallChecked, 0)}</div>
                       <div className="text-sm text-muted-foreground">Pending</div>
                     </div>
                   </div>
@@ -394,7 +432,6 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
 
-        {/* Attendees Tab */}
         <TabsContent value="attendees" className="space-y-4">
           <Card>
             <CardHeader>
@@ -404,8 +441,8 @@ export default function AdminDashboard() {
                   <CardDescription>View and manage all registered attendees</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Input placeholder="Search attendees..." className="w-[250px]" />
-                  <Select defaultValue="all">
+                  <Input placeholder="Search attendees..." className="w-[250px]" disabled={loading} />
+                  <Select defaultValue="all" disabled={loading}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
@@ -417,7 +454,7 @@ export default function AdminDashboard() {
                       <SelectItem value="speaker">Speakers</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" disabled={loading}>
                     <Filter className="h-4 w-4" />
                   </Button>
                 </div>
@@ -438,13 +475,14 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {attendees.slice(0, 20).map((attendee) => (
+                    {attendeeList.map((attendee) => (
                       <TableRow key={attendee.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar>
                               <AvatarFallback>
-                                {attendee.firstName[0]}{attendee.lastName[0]}
+                                {attendee.firstName?.[0]}
+                                {attendee.lastName?.[0]}
                               </AvatarFallback>
                             </Avatar>
                             <div>
@@ -456,7 +494,7 @@ export default function AdminDashboard() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium">{attendee.organization}</div>
+                          <div className="font-medium">{attendee.organization || '—'}</div>
                           <div className="text-sm text-muted-foreground">{attendee.occupation}</div>
                         </TableCell>
                         <TableCell>
@@ -466,16 +504,21 @@ export default function AdminDashboard() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={
-                            attendee.registrationType === 'VIP' ? 'default' : 
-                            attendee.registrationType === 'Speaker' ? 'secondary' : 'outline'
-                          }>
+                          <Badge
+                            variant={
+                              attendee.registrationType === 'VIP'
+                                ? 'default'
+                                : attendee.registrationType === 'Speaker'
+                                  ? 'secondary'
+                                  : 'outline'
+                            }
+                          >
                             {attendee.registrationType}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {attendee.interests.map((interest) => (
+                            {(attendee.interests || []).map((interest) => (
                               <Badge key={interest} variant="secondary" className="text-xs">
                                 {interest}
                               </Badge>
@@ -514,11 +557,6 @@ export default function AdminDashboard() {
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem>
-                                <Mail className="h-4 w-4 mr-2" />
-                                Send Email
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
                               </DropdownMenuItem>
@@ -534,7 +572,6 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
@@ -579,19 +616,25 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-2 rounded-lg border p-4 text-center">
                     <div className="text-sm font-medium text-muted-foreground">Average Group Size</div>
-                    <div className="text-2xl font-bold">2.4</div>
+                    <div className="text-2xl font-bold">
+                      {attendees.length
+                        ? (attendees.reduce((acc, a) => acc + (a.groupSize || 1), 0) / attendees.length).toFixed(1)
+                        : '—'}
+                    </div>
                   </div>
                   <div className="space-y-2 rounded-lg border p-4 text-center">
-                    <div className="text-sm font-medium text-muted-foreground">Top Referral Source</div>
-                    <div className="text-2xl font-bold">Email</div>
+                    <div className="text-sm font-medium text-muted-foreground">Top Registration Type</div>
+                    <div className="text-2xl font-bold">
+                      {typeData.sort((a, b) => b.value - a.value)[0]?.name || '—'}
+                    </div>
                   </div>
                   <div className="space-y-2 rounded-lg border p-4 text-center">
-                    <div className="text-sm font-medium text-muted-foreground">Peak Registration Hour</div>
-                    <div className="text-2xl font-bold">10:00 AM</div>
+                    <div className="text-sm font-medium text-muted-foreground">Recent Check-ins (24h)</div>
+                    <div className="text-2xl font-bold">{summary?.recentCheckIns ?? 0}</div>
                   </div>
                   <div className="space-y-2 rounded-lg border p-4 text-center">
-                    <div className="text-sm font-medium text-muted-foreground">VIP Percentage</div>
-                    <div className="text-2xl font-bold">15%</div>
+                    <div className="text-sm font-medium text-muted-foreground">Attendance Rate</div>
+                    <div className="text-2xl font-bold">{checkInRate}%</div>
                   </div>
                 </div>
               </CardContent>
@@ -599,7 +642,6 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
 
-        {/* Reports Tab */}
         <TabsContent value="reports" className="space-y-4">
           <Card>
             <CardHeader>

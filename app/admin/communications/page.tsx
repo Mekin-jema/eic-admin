@@ -19,49 +19,30 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Loading from './loading';
+import { useEicAdminStore } from '@/store/useEicAdminStore';
+import { NotificationLogItem as NotifLogItem } from '@/lib/adminApi';
 import { Textarea } from '@/components/ui/textarea';
 
-const emailTemplates = [
-  {
-    id: 'welcome',
-    name: 'Welcome Email',
-    subject: 'Welcome to Invest Ethiopia Forum 2026',
-    used: 1247,
-    lastUsed: 'Today',
-  },
-  {
-    id: 'checkin-reminder',
-    name: 'Check-in Reminder',
-    subject: 'Important: Check-in Information',
-    used: 892,
-    lastUsed: 'Yesterday',
-  },
-  {
-    id: 'vip-invite',
-    name: 'VIP Invitation',
-    subject: 'Exclusive VIP Event Invitation',
-    used: 156,
-    lastUsed: '2 days ago',
-  },
-  {
-    id: 'post-event',
-    name: 'Post-Event Follow-up',
-    subject: 'Thank You & Next Steps',
-    used: 0,
-    lastUsed: 'Never',
-  },
-];
-
-const recentMessages = [
-  { id: 1, subject: 'Welcome Email', sent: 1247, opened: 845, clicked: 324, date: 'Today' },
-  { id: 2, subject: 'Check-in Reminder', sent: 892, opened: 712, clicked: 289, date: 'Yesterday' },
-  { id: 3, subject: 'VIP Welcome', sent: 156, opened: 148, clicked: 76, date: '2 days ago' },
-  { id: 4, subject: 'Speaker Briefing', sent: 42, opened: 42, clicked: 32, date: '3 days ago' },
-];
+// Backend-driven templates and messages
+const toDisplayDate = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—';
 
 export default function CommunicationsPage() {
-  const [selectedTemplate, setSelectedTemplate] = useState('welcome');
+  const loading = useEicAdminStore((s) => s.loading);
+  const fetchCommunications = useEicAdminStore((s) => s.fetchCommunications);
+  const sendEmail = useEicAdminStore((s) => s.sendEmail);
+  const templates = useEicAdminStore((s) => s.commTemplates);
+  const stats = useEicAdminStore((s) => s.commStats) || { totalSent: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubscribes: 0 };
+  const recentMessages = useEicAdminStore((s) => s.commRecent);
+  const campaigns = useEicAdminStore((s) => s.emailCampaigns);
+  const smsStats = useEicAdminStore((s) => s.smsStats) || { creditsRemaining: 0, usedPercent: 0, deliveryRate: 0, delivered: 0, failed: 0 };
+  const notifRecent = useEicAdminStore((s) => s.notifRecent as NotifLogItem[]);
+  const platform = useEicAdminStore((s) => s.platformStats) || { iosUsers: 0, androidUsers: 0, totalAppUsers: 0 };
+
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('welcome');
+  const [audience, setAudience] = useState<string>('all');
+  const [subject, setSubject] = useState<string>('Welcome to Invest Ethiopia Forum 2026');
   const [message, setMessage] = useState(`Dear Attendee,
 
 Welcome to the Invest Ethiopia Forum 2026! We're excited to have you join us for this premier investment event.
@@ -75,14 +56,22 @@ Please bring your registration confirmation and ID.
 
 Best regards,
 Invest Ethiopia Forum Team`);
+  useEffect(() => {
+    fetchCommunications();
+  }, [fetchCommunications]);
 
-  const stats = {
-    totalSent: 2337,
-    openRate: 68,
-    clickRate: 32,
-    bounceRate: 2,
-    unsubscribes: 12,
-  };
+  const activeTemplateSubject = useMemo(() => {
+    const tpl = templates.find((t) => t.key === selectedTemplate);
+    return tpl?.subject;
+  }, [templates, selectedTemplate]);
+
+  useEffect(() => {
+    if (activeTemplateSubject) setSubject(activeTemplateSubject);
+  }, [activeTemplateSubject]);
+
+  if (loading) {
+    return <Loading />;
+  }
 
   return (
     <div className="space-y-6">
@@ -97,7 +86,7 @@ Invest Ethiopia Forum Team`);
             <History className="h-4 w-4 mr-2" />
             History
           </Button>
-          <Button>
+          <Button disabled={loading} onClick={() => sendEmail({ templateKey: selectedTemplate, audience, subject, body: message })}>
             <Send className="h-4 w-4 mr-2" />
             Send Message
           </Button>
@@ -181,17 +170,17 @@ Invest Ethiopia Forum Team`);
               <div>
                 <label className="text-sm font-medium mb-2 block">Select Template</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {emailTemplates.map((template) => (
+                  {templates.map((template) => (
                     <Button
-                      key={template.id}
-                      variant={selectedTemplate === template.id ? "default" : "outline"}
+                      key={template.key}
+                      variant={selectedTemplate === template.key ? "default" : "outline"}
                       className="justify-start h-auto py-3"
-                      onClick={() => setSelectedTemplate(template.id)}
+                      onClick={() => { setSelectedTemplate(template.key); setSubject(template.subject); }}
                     >
                       <div className="flex flex-col items-start">
                         <span className="font-medium">{template.name}</span>
                         <span className="text-xs text-muted-foreground mt-1">
-                          Used {template.used} times • {template.lastUsed}
+                          Used {template.usedCount} times • {toDisplayDate(template.lastUsedAt)}
                         </span>
                       </div>
                     </Button>
@@ -203,16 +192,16 @@ Invest Ethiopia Forum Team`);
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Send To</label>
-                  <Select defaultValue="all">
+                  <Select defaultValue={audience} onValueChange={(v) => setAudience(v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select recipients" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Attendees (1,247)</SelectItem>
-                      <SelectItem value="checked-in">Checked In (892)</SelectItem>
-                      <SelectItem value="pending">Pending (355)</SelectItem>
-                      <SelectItem value="vip">VIP (156)</SelectItem>
-                      <SelectItem value="speakers">Speakers (42)</SelectItem>
+                      <SelectItem value="all">All Attendees</SelectItem>
+                      <SelectItem value="checked-in">Checked In</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="vip">VIP</SelectItem>
+                      <SelectItem value="speakers">Speakers</SelectItem>
                       <SelectItem value="custom">Custom Selection</SelectItem>
                     </SelectContent>
                   </Select>
@@ -253,7 +242,8 @@ Invest Ethiopia Forum Team`);
                 <label className="text-sm font-medium mb-2 block">Subject</label>
                 <Input 
                   placeholder="Enter email subject" 
-                  defaultValue="Welcome to Invest Ethiopia Forum 2026"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
                 />
               </div>
 
@@ -361,25 +351,25 @@ Invest Ethiopia Forum Team`);
                     <div key={msg.id} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium">{msg.subject}</h4>
-                        <span className="text-xs text-muted-foreground">{msg.date}</span>
+                        <span className="text-xs text-muted-foreground">{toDisplayDate(msg.createdAt)}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="p-2 border rounded">
-                          <div className="text-sm font-bold">{msg.sent}</div>
+                          <div className="text-sm font-bold">{msg.sentCount}</div>
                           <div className="text-xs text-muted-foreground">Sent</div>
                         </div>
                         <div className="p-2 border rounded">
-                          <div className="text-sm font-bold">{msg.opened}</div>
+                          <div className="text-sm font-bold">{msg.openedCount ?? 0}</div>
                           <div className="text-xs text-muted-foreground">Opened</div>
                         </div>
                         <div className="p-2 border rounded">
-                          <div className="text-sm font-bold">{msg.clicked}</div>
+                          <div className="text-sm font-bold">{msg.clickedCount ?? 0}</div>
                           <div className="text-xs text-muted-foreground">Clicked</div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span>Open rate: {Math.round((msg.opened / msg.sent) * 100)}%</span>
-                        <span>CTR: {Math.round((msg.clicked / msg.opened) * 100)}%</span>
+                        <span>Open rate: {msg.sentCount ? Math.round(((msg.openedCount ?? 0) / msg.sentCount) * 100) : 0}%</span>
+                        <span>CTR: {msg.openedCount ? Math.round(((msg.clickedCount ?? 0) / msg.openedCount) * 100) : 0}%</span>
                       </div>
                     </div>
                   ))}
@@ -421,12 +411,7 @@ Invest Ethiopia Forum Team`);
               <div className="space-y-6">
                 {/* Campaign List */}
                 <div className="space-y-4">
-                  {[
-                    { name: 'Welcome Series', status: 'Active', sent: 1247, openRate: 68 },
-                    { name: 'Check-in Series', status: 'Active', sent: 892, openRate: 72 },
-                    { name: 'VIP Engagement', status: 'Paused', sent: 156, openRate: 85 },
-                    { name: 'Post-Event', status: 'Draft', sent: 0, openRate: 0 },
-                  ].map((campaign) => (
+                  {campaigns.map((campaign) => (
                     <div key={campaign.name} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
@@ -534,10 +519,10 @@ Invest Ethiopia Forum Team`);
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-medium">SMS Credits</h4>
-                        <Badge>1,247 remaining</Badge>
+                        <Badge>{smsStats.creditsRemaining.toLocaleString()} remaining</Badge>
                       </div>
-                      <Progress value={65} className="mb-2" />
-                      <p className="text-sm text-muted-foreground">Used 35% of total credits</p>
+                      <Progress value={smsStats.usedPercent} className="mb-2" />
+                      <p className="text-sm text-muted-foreground">Used {smsStats.usedPercent}% of total credits</p>
                     </CardContent>
                   </Card>
 
@@ -545,16 +530,16 @@ Invest Ethiopia Forum Team`);
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-medium">Delivery Rate</h4>
-                        <Badge variant="outline">98.5%</Badge>
+                        <Badge variant="outline">{smsStats.deliveryRate}%</Badge>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span>Delivered</span>
-                          <span className="font-medium">1,228</span>
+                          <span className="font-medium">{smsStats.delivered.toLocaleString()}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span>Failed</span>
-                          <span className="font-medium text-red-600">19</span>
+                          <span className="font-medium text-red-600">{smsStats.failed.toLocaleString()}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -609,17 +594,13 @@ Invest Ethiopia Forum Team`);
                       <div className="space-y-4">
                         <h4 className="font-medium">Recent Notifications</h4>
                         <div className="space-y-3">
-                          {[
-                            { title: 'Welcome Message', sent: '2 hours ago', read: 845 },
-                            { title: 'Check-in Reminder', sent: 'Yesterday', read: 712 },
-                            { title: 'Session Starting', sent: 'Today', read: 324 },
-                          ].map((notif) => (
-                            <div key={notif.title} className="flex items-center justify-between p-2 border rounded">
+                          {notifRecent.map((notif) => (
+                            <div key={notif.id} className="flex items-center justify-between p-2 border rounded">
                               <div>
                                 <p className="font-medium text-sm">{notif.title}</p>
-                                <p className="text-xs text-muted-foreground">{notif.sent}</p>
+                                <p className="text-xs text-muted-foreground">{toDisplayDate(notif.createdAt)}</p>
                               </div>
-                              <Badge variant="outline">{notif.read} read</Badge>
+                              <Badge variant="outline">{notif.sentCount} sent</Badge>
                             </div>
                           ))}
                         </div>
@@ -634,18 +615,18 @@ Invest Ethiopia Forum Team`);
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-sm">iOS Users</span>
-                            <Badge>856</Badge>
+                            <Badge>{platform.iosUsers.toLocaleString()}</Badge>
                           </div>
-                          <Progress value={68} className="h-2" />
+                          <Progress value={platform.totalAppUsers ? Math.round((platform.iosUsers / platform.totalAppUsers) * 100) : 0} className="h-2" />
                           
                           <div className="flex items-center justify-between">
                             <span className="text-sm">Android Users</span>
-                            <Badge variant="outline">391</Badge>
+                            <Badge variant="outline">{platform.androidUsers.toLocaleString()}</Badge>
                           </div>
-                          <Progress value={32} className="h-2" />
+                          <Progress value={platform.totalAppUsers ? Math.round((platform.androidUsers / platform.totalAppUsers) * 100) : 0} className="h-2" />
                           
                           <div className="pt-2 text-sm text-muted-foreground">
-                            Total app users: 1,247
+                            Total app users: {platform.totalAppUsers.toLocaleString()}
                           </div>
                         </div>
                       </div>

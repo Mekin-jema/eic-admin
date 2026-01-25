@@ -17,40 +17,43 @@ import {
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from '@/components/ui/table';
-import { useState } from 'react';
-import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-
-// Mock data
-const checkinData = [
-  { hour: '8:00', checkins: 45 },
-  { hour: '9:00', checkins: 78 },
-  { hour: '10:00', checkins: 124 },
-  { hour: '11:00', checkins: 89 },
-  { hour: '12:00', checkins: 67 },
-  { hour: '13:00', checkins: 92 },
-  { hour: '14:00', checkins: 156 },
-  { hour: '15:00', checkins: 143 },
-];
-
-const pendingAttendees = Array.from({ length: 20 }, (_, i) => ({
-  id: `PEND-${100 + i}`,
-  name: `Attendee ${i + 1}`,
-  type: ['VIP', 'Standard', 'Speaker'][Math.floor(Math.random() * 3)],
-  registrationTime: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-}));
+import { useEffect, useMemo, useState } from 'react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { AttendeeRegistration } from '@/lib/adminApi';
+import { useEicAdminStore } from '@/store/useEicAdminStore';
+import Loading from './loading';
 
 export default function CheckinPage() {
+  const summary = useEicAdminStore((s) => s.attendanceSummary);
+  const attendees = useEicAdminStore((s) => s.attendees);
+  const loading = useEicAdminStore((s) => s.loading);
+  const refreshDashboard = useEicAdminStore((s) => s.refreshDashboard);
   const [scanMode, setScanMode] = useState(false);
   const [manualId, setManualId] = useState('');
 
+  useEffect(() => {
+    refreshDashboard();
+  }, [refreshDashboard]);
+
   const stats = {
-    total: 1247,
-    checkedIn: 892,
-    pending: 355,
-    checkInRate: 72,
-    todayCheckins: 156,
-    avgCheckinTime: '2.4 min',
+    total: summary?.totalUsers ?? 0,
+    checkedIn: summary?.checkedInUsers ?? 0,
+    pending: summary ? summary.totalUsers - summary.checkedInUsers : 0,
+    checkInRate: summary ? Math.round(summary.attendanceRate) : 0,
+    todayCheckins: summary?.recentCheckIns ?? 0,
+    avgCheckinTime: '—',
   };
+
+  const pendingAttendees = useMemo(() => attendees.filter((a) => !a.isCheckedIn), [attendees]);
+
+  const checkinDataByType = useMemo(() => {
+    if (!summary) return [] as Array<{ type: string; checkedIn: number; total: number }>;
+    return [
+      { type: 'Attendees', checkedIn: summary.breakdown.attendees.checkedIn, total: summary.breakdown.attendees.total },
+      { type: 'Exhibitors', checkedIn: summary.breakdown.exhibitors.checkedIn, total: summary.breakdown.exhibitors.total },
+      { type: 'Sponsors', checkedIn: summary.breakdown.sponsors.checkedIn, total: summary.breakdown.sponsors.total },
+    ];
+  }, [summary]);
 
   const handleManualCheckin = () => {
     if (manualId.trim()) {
@@ -58,6 +61,8 @@ export default function CheckinPage() {
       setManualId('');
     }
   };
+
+  if (loading) return <Loading />;
 
   return (
     <div className="space-y-6">
@@ -243,12 +248,13 @@ export default function CheckinPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={checkinData}>
+              <BarChart data={checkinDataByType}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="hour" />
+                <XAxis dataKey="type" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="checkins" fill="#8884d8" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="checkedIn" name="Checked In" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="total" name="Total" fill="#8884d8" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             
@@ -318,14 +324,12 @@ export default function CheckinPage() {
             <TableBody>
               {pendingAttendees.map((attendee) => (
                 <TableRow key={attendee.id}>
-                  <TableCell className="font-medium">{attendee.name}</TableCell>
+                  <TableCell className="font-medium">{attendee.firstName} {attendee.lastName}</TableCell>
                   <TableCell>
-                    <Badge variant={attendee.type === 'VIP' ? 'default' : 'outline'}>
-                      {attendee.type}
-                    </Badge>
+                    <Badge variant="outline">{attendee.registrationType}</Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(attendee.registrationTime).toLocaleDateString()}
+                    {new Date(attendee.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
