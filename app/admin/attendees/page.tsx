@@ -152,7 +152,7 @@ export default function AttendeesPage() {
   };
 
   const processedAttendees = useMemo(() => {
-    let filtered = attendees.filter((attendee) => {
+    const filtered = attendees.filter((attendee) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch =
         attendee.firstName?.toLowerCase().includes(term) ||

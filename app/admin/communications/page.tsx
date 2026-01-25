@@ -19,7 +19,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Loading from './loading';
 import { useEicAdminStore } from '@/store/useEicAdminStore';
 import { NotificationLogItem as NotifLogItem } from '@/lib/adminApi';
@@ -59,15 +59,6 @@ Invest Ethiopia Forum Team`);
   useEffect(() => {
     fetchCommunications();
   }, [fetchCommunications]);
-
-  const activeTemplateSubject = useMemo(() => {
-    const tpl = templates.find((t) => t.key === selectedTemplate);
-    return tpl?.subject;
-  }, [templates, selectedTemplate]);
-
-  useEffect(() => {
-    if (activeTemplateSubject) setSubject(activeTemplateSubject);
-  }, [activeTemplateSubject]);
 
   if (loading) {
     return <Loading />;
