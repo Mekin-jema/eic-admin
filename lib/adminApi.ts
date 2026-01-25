@@ -1,5 +1,5 @@
 // Simple API client for the EIC backend admin endpoints
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') || 'http://localhost:8000/api';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') || 'https://eic-backend-9heh.onrender.com/api';
 
 export interface TotalCounts {
   attendees: number;
