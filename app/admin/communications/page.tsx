@@ -74,7 +74,7 @@ Invest Ethiopia Forum Team`);
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pl-9 pr-4">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>

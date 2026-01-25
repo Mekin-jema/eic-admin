@@ -164,7 +164,7 @@ export default function AnalyticsPage() {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pl-9 pr-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
