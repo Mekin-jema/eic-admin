@@ -16,19 +16,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
 import {
   AttendeeRegistration,
   AttendanceSummaryResponse,
   getAttendees,
   getAttendanceSummary,
 } from '@/lib/adminApi';
+import Loading from './loading';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function AdminDashboard() {
   const [attendees, setAttendees] = useState<AttendeeRegistration[]>([]);
   const [summary, setSummary] = useState<AttendanceSummaryResponse['summary'] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadData = async () => {
@@ -145,6 +147,8 @@ export default function AdminDashboard() {
   const topType = useMemo(() => {
     return [...typeData].sort((a, b) => b.value - a.value)[0]?.name || '—';
   }, [typeData]);
+
+  if (loading) return <Loading />;
 
   return (
     <div className="container mx-auto py-6 space-y-6 pl-9 pr-4">
