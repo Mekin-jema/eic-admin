@@ -41,8 +41,7 @@ export function LoginForm({
       const ok =  await login(values.email, values.password)
       if (ok) {
         toast.success("Logged in successfully")
-        const next = searchParams.get("next") || "/admin"
-        router.replace(next)
+        router.push("/admin")
       } else {
         toast.error("Invalid credentials")
       }
