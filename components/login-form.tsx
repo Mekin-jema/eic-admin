@@ -39,6 +39,7 @@ export function LoginForm({
   const onSubmit = async (values: LoginFormValues) => {
     try {
       const ok =  await login(values.email, values.password)
+      
       if (ok) {
         toast.success("Logged in successfully")
         router.push("/admin")

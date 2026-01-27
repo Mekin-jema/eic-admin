@@ -30,14 +30,14 @@ export function middleware(req: NextRequest) {
   }
 
   // Protect admin routes
-  if (isAdminRoute) {
-    if (!token) {
-      const url = req.nextUrl.clone()
-      url.pathname = LOGIN_PATH
-      url.searchParams.set('next', pathname)
-      return NextResponse.redirect(url)
-    }
-  }
+  // if (isAdminRoute) {
+  //   if (!token) {
+  //     const url = req.nextUrl.clone()
+  //     url.pathname = LOGIN_PATH
+  //     url.searchParams.set('next', pathname)
+  //     return NextResponse.redirect(url)
+  //   }
+  // }
 
   return NextResponse.next()
 }

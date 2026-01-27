@@ -1,6 +1,18 @@
 // Simple API client for the EIC backend admin endpoints
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') || 'https://eic-backend-9heh.onrender.com/api';
 
+const COOKIE_NAME = 'admin_token'
+
+const authHeader = (): Record<string, string> => {
+  if (typeof document === 'undefined') return {}
+  const token = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(`${COOKIE_NAME}=`))
+    ?.split('=')[1]
+
+  return token ? { Authorization: `Bearer ${decodeURIComponent(token)}` } : {}
+}
+
 export interface TotalCounts {
   attendees: number;
   exhibitors: number;
@@ -57,13 +69,13 @@ export interface AttendeeRegistration {
 export interface ListResponse<T> { success: boolean; data: T[] }
 
 export async function getAnalytics(): Promise<AnalyticsResponse> {
-  const res = await fetch(`${API_BASE}/admin/analytics`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/admin/analytics`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch analytics');
   return res.json();
 }
 
 export async function getAttendees(): Promise<ListResponse<AttendeeRegistration>> {
-  const res = await fetch(`${API_BASE}/admin/attendees`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/admin/attendees`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch attendees');
   return res.json();
 }
@@ -84,7 +96,7 @@ export interface AttendanceSummaryResponse {
 }
 
 export async function getAttendanceSummary(): Promise<AttendanceSummaryResponse> {
-  const res = await fetch(`${API_BASE}/attendance/summary`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/attendance/summary`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch attendance summary');
   return res.json();
 }
@@ -123,19 +135,19 @@ export interface CommunicationLogItem {
 }
 
 export async function getCommTemplates(): Promise<{ success: boolean; data: CommunicationTemplate[] }> {
-  const res = await fetch(`${API_BASE}/admin/communications/templates`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/admin/communications/templates`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch templates');
   return res.json();
 }
 
 export async function getCommStats(): Promise<{ success: boolean; data: CommunicationStats }> {
-  const res = await fetch(`${API_BASE}/admin/communications/stats`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/admin/communications/stats`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch communication stats');
   return res.json();
 }
 
 export async function getRecentMessages(limit = 10): Promise<{ success: boolean; data: CommunicationLogItem[] }> {
-  const res = await fetch(`${API_BASE}/admin/communications/recent?limit=${limit}`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/admin/communications/recent?limit=${limit}`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch recent messages');
   return res.json();
 }
@@ -143,8 +155,8 @@ export async function getRecentMessages(limit = 10): Promise<{ success: boolean;
 export async function sendCommunicationEmail(payload: { templateKey?: string; audience: string; subject: string; body: string }): Promise<{ success: boolean; data: { attempted: number; sent: number; errors: Array<{ email: string; error: string }> } }> {
   const res = await fetch(`${API_BASE}/admin/communications/email/send`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error('Failed to send communication');
@@ -154,28 +166,28 @@ export async function sendCommunicationEmail(payload: { templateKey?: string; au
 // Extended communications endpoints
 export interface EmailCampaignSummary { name: string; status: string; sent: number; openRate: number }
 export async function getEmailCampaigns(): Promise<{ success: boolean; data: EmailCampaignSummary[] }> {
-  const res = await fetch(`${API_BASE}/admin/communications/email/campaigns`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/admin/communications/email/campaigns`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch email campaigns');
   return res.json();
 }
 
 export interface SmsStats { creditsRemaining: number; usedPercent: number; deliveryRate: number; delivered: number; failed: number }
 export async function getSmsStats(): Promise<{ success: boolean; data: SmsStats }> {
-  const res = await fetch(`${API_BASE}/admin/communications/sms/stats`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/admin/communications/sms/stats`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch SMS stats');
   return res.json();
 }
 
 export interface NotificationLogItem { id: string; title: string; message: string; audience: string; sentCount: number; createdAt: string }
 export async function getRecentNotifications(limit = 10): Promise<{ success: boolean; data: NotificationLogItem[] }> {
-  const res = await fetch(`${API_BASE}/admin/communications/notifications/recent?limit=${limit}`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/admin/communications/notifications/recent?limit=${limit}`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch recent notifications');
   return res.json();
 }
 
 export interface PlatformStats { iosUsers: number; androidUsers: number; totalAppUsers: number }
 export async function getPlatformStats(): Promise<{ success: boolean; data: PlatformStats }> {
-  const res = await fetch(`${API_BASE}/admin/communications/notifications/platform`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/admin/communications/notifications/platform`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch platform stats');
   return res.json();
 }
