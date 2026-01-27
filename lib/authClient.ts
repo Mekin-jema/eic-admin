@@ -1,6 +1,5 @@
-"use server"
 
-import { cookies } from 'next/headers'
+
 import { API_BASE } from '@/lib/adminApi'
 
 export async function setAdminSession(email: string, password: string): Promise<boolean> {
@@ -18,19 +17,10 @@ export async function setAdminSession(email: string, password: string): Promise<
   const token: string | undefined = data?.token
   if (!token) return false
 
-  // Store token in httpOnly cookie for middleware guard
-  const cookieStore = await cookies()
-  cookieStore.set('admin_token', token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 8, // 8 hours
-  })
   return true
 }
 
 export async function clearAdminSession() {
-  const cookieStore = await cookies()
   cookieStore.delete('admin_token')
 }
 

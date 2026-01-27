@@ -13,10 +13,9 @@ import { Input } from "@/components/ui/input"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { loginFormSchema, type LoginFormValues } from "@/lib/validation-schemas"
-import { useState } from "react"
 import { toast } from "sonner"
 import { useRouter, useSearchParams } from "next/navigation"
-import { setAdminSession } from "@/lib/authClient"
+import { useAuthStore } from "@/store/useAuthStore"
 
 export function LoginForm({
   className,
@@ -24,7 +23,8 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [pending, setPending] = useState(false)
+  const login = useAuthStore((s) => s.login)
+  const pending = useAuthStore((s) => s.loading)
 
   const {
     register,
@@ -38,8 +38,7 @@ export function LoginForm({
 
   const onSubmit = async (values: LoginFormValues) => {
     try {
-      setPending(true)
-      const ok = await setAdminSession(values.email, values.password)
+      const ok =  await login(values.email, values.password)
       if (ok) {
         toast.success("Logged in successfully")
         const next = searchParams.get("next") || "/admin"
@@ -49,8 +48,6 @@ export function LoginForm({
       }
     } catch (err: any) {
       toast.error("Login failed", { description: err?.message || "Please try again" })
-    } finally {
-      setPending(false)
     }
   }
 

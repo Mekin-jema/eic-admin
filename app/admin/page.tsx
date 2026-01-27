@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Download, Globe, RefreshCw, Settings, UserCheck, Users, Building, BarChart3, TrendingUp } from 'lucide-react';
 import { CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useRouter } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,15 +24,24 @@ import {
   getAttendees,
   getAttendanceSummary,
 } from '@/lib/adminApi';
+import { useAuthStore } from '@/store/useAuthStore';
 import Loading from './loading';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
+  const authLoading = useAuthStore((s) => s.loading);
   const [attendees, setAttendees] = useState<AttendeeRegistration[]>([]);
   const [summary, setSummary] = useState<AttendanceSummaryResponse['summary'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/login');
+  };
 
   const loadData = async () => {
     try {
@@ -179,7 +189,9 @@ export default function AdminDashboard() {
               <DropdownMenuItem>Analytics</DropdownMenuItem>
               <DropdownMenuItem>Reports</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600" disabled={authLoading}>
+                Logout
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
