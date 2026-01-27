@@ -11,10 +11,10 @@ export default function NotificationBell() {
   const fetchAdminNotifications = useAdminDashboardStore((s) => s.fetchAdminNotifications);
   const notifications = useAdminDashboardStore((s) => s.notifications) || [];
 
-  useEffect(() => {
-    // fetch once on mount
-    fetchAdminNotifications?.();
-  }, [fetchAdminNotifications]);
+  // useEffect(() => {
+  //   // fetch once on mount
+  //   fetchAdminNotifications?.();
+  // }, [fetchAdminNotifications]);
 
   // typed minimal notification shape
   type NotificationItem = { _id?: string; seen?: boolean };

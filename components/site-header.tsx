@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Moon, Sun, Search as SearchIcon } from "lucide-react";
-import NotificationBell from '@/components/notification-bell'
+// import NotificationBell from '@/components/notification-bell'
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -126,7 +126,7 @@ const Header = () => {
                 <div className="hidden md:flex">
                     <Search />
                 </div>
-                <NotificationBell />
+                {/* <NotificationBell /> */}
                 <DarkModeToggle />
                 {/* Uncomment this when you add user auth
           <NavUser />
