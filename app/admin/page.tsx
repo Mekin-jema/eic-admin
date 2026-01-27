@@ -54,8 +54,10 @@ export default function AdminDashboard() {
 
   const totalAttendees = attendees.length;
   const checkedInAttendees = attendees.filter((a) => a.isCheckedIn).length;
-  const overallTotal = summary?.totalUsers ?? totalAttendees;
-  const overallChecked = summary?.checkedInUsers ?? checkedInAttendees;
+  const attendeesTotalFromSummary = summary?.breakdown?.attendees?.total;
+  const attendeesCheckedFromSummary = summary?.breakdown?.attendees?.checkedIn;
+  const overallTotal = attendeesTotalFromSummary ?? totalAttendees;
+  const overallChecked = attendeesCheckedFromSummary ?? checkedInAttendees;
   const checkInRate = overallTotal > 0 ? Math.round((overallChecked / overallTotal) * 100) : 0;
   const uniqueCountries = useMemo(
     () => new Set(attendees.map((a) => a.country).filter(Boolean)).size,
@@ -197,7 +199,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{overallTotal}</div>
-            <p className="text-xs text-muted-foreground">Attendees + Exhibitors + Sponsors</p>
+            <p className="text-xs text-muted-foreground">Attendees</p>
           </CardContent>
         </Card>
 
@@ -394,13 +396,11 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Registration Mix</CardTitle>
-            <CardDescription>Attendees vs Exhibitors vs Sponsors</CardDescription>
+            <CardDescription>Attendees</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-3">
             {[
-              { label: 'Attendees', value: typeDistribution.Attendee ?? typeDistribution.attendee ?? typeDistribution['Attendee'] ?? 0, color: 'bg-primary' },
-              { label: 'Exhibitors', value: typeDistribution.Exhibitor ?? typeDistribution.exhibitor ?? typeDistribution['Exhibitor'] ?? 0, color: 'bg-amber-500' },
-              { label: 'Sponsors', value: typeDistribution.Sponsor ?? typeDistribution.sponsor ?? typeDistribution['Sponsor'] ?? 0, color: 'bg-emerald-500' },
+              { label: 'Attendees', value: overallTotal, color: 'bg-primary' },
             ].map((item) => {
               const total = overallTotal || 1;
               return (

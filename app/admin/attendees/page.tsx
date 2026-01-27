@@ -122,20 +122,13 @@ export default function AttendeesPage() {
     fetchAttendees();
   }, [fetchAttendees]);
 
-  const registrationTypes = useMemo(() => {
-    const set = new Set<string>();
-    attendees.forEach((a) => {
-      if (a.registrationType) set.add(a.registrationType);
-    });
-    return Array.from(set);
-  }, [attendees]);
+  // Individual-only: no registration type grouping
 
   // Define table columns
   const columns: Column<Attendee>[] = [
     { id: 'firstName', label: 'Attendee', sortable: true },
     { id: 'organization', label: 'Organization', sortable: true },
     { id: 'country', label: 'Country', sortable: true },
-    { id: 'registrationType', label: 'Type', sortable: true },
     { id: 'interests', label: 'Interests', sortable: false },
     { id: 'isCheckedIn', label: 'Status', sortable: true },
   ];
@@ -339,10 +332,7 @@ export default function AttendeesPage() {
                   <SelectValue placeholder="Registration Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {registrationTypes.map((rt) => (
-                    <SelectItem key={rt} value={rt}>{rt}</SelectItem>
-                  ))}
+                  <SelectItem value="all">All</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={(value) => {

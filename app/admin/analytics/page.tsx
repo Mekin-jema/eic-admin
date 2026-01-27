@@ -81,8 +81,8 @@ export default function AnalyticsPage() {
 
   const totalAttendees = attendees.length;
   const checkedInAttendees = useMemo(() => attendees.filter((a) => a.isCheckedIn).length, [attendees]);
-  const overallTotal = attendance?.totalUsers ?? totalAttendees;
-  const overallChecked = attendance?.checkedInUsers ?? checkedInAttendees;
+  const overallTotal = attendance?.breakdown?.attendees?.total ?? totalAttendees;
+  const overallChecked = attendance?.breakdown?.attendees?.checkedIn ?? checkedInAttendees;
   const checkInRate = overallTotal > 0 ? Math.round((overallChecked / overallTotal) * 100) : 0;
 
   const countryDistribution = useMemo(() => {
@@ -220,8 +220,8 @@ export default function AnalyticsPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{analytics?.totalCounts.total ?? overallTotal}</div>
-                <p className="text-xs text-muted-foreground">Attendees + Exhibitors + Sponsors</p>
+                <div className="text-2xl font-bold">{analytics?.totalCounts.attendees ?? overallTotal}</div>
+                <p className="text-xs text-muted-foreground">Attendees</p>
               </CardContent>
             </Card>
 
@@ -392,15 +392,13 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Registration Mix</CardTitle>
-                <CardDescription>Attendees vs Exhibitors vs Sponsors</CardDescription>
+                <CardDescription>Attendees</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
-                  { label: 'Attendees', value: analytics?.totalCounts.attendees ?? 0, color: 'bg-primary' },
-                  { label: 'Exhibitors', value: analytics?.totalCounts.exhibitors ?? 0, color: 'bg-amber-500' },
-                  { label: 'Sponsors', value: analytics?.totalCounts.sponsors ?? 0, color: 'bg-emerald-500' },
+                  { label: 'Attendees', value: analytics?.totalCounts.attendees ?? overallTotal, color: 'bg-primary' },
                 ].map((item) => {
-                  const total = (analytics?.totalCounts.total ?? overallTotal) || 1;
+                  const total = (analytics?.totalCounts.attendees ?? overallTotal) || 1;
                   return (
                     <div key={item.label} className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
@@ -425,21 +423,20 @@ export default function AnalyticsPage() {
                 <CardDescription>Check-ins by audience</CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {(['attendees', 'exhibitors', 'sponsors'] as const).map((key) => {
-                  const bucket = attendanceBreakdown?.[key];
-                  const total = bucket?.total ?? 0;
-                  const checked = bucket?.checkedIn ?? 0;
+                {(() => {
+                  const bucket = attendanceBreakdown?.attendees;
+                  const total = bucket?.total ?? overallTotal ?? 0;
+                  const checked = bucket?.checkedIn ?? overallChecked ?? 0;
                   const rate = total > 0 ? Math.round((checked / total) * 100) : 0;
-                  const label = key.charAt(0).toUpperCase() + key.slice(1);
                   return (
-                    <div key={key} className="rounded-lg border p-3 space-y-2">
-                      <div className="text-sm font-medium">{label}</div>
+                    <div className="rounded-lg border p-3 space-y-2">
+                      <div className="text-sm font-medium">Attendees</div>
                       <div className="text-2xl font-bold">{checked}</div>
                       <div className="text-xs text-muted-foreground">{rate}% of {total}</div>
                       <Progress value={rate} />
                     </div>
                   );
-                })}
+                })()}
               </CardContent>
             </Card>
           </div>
@@ -627,14 +624,6 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="space-y-2 rounded-lg border p-4 text-center">
-                    <div className="text-sm font-medium text-muted-foreground">Average Group Size</div>
-                    <div className="text-2xl font-bold">
-                      {attendees.length
-                        ? (attendees.reduce((acc, a) => acc + (a.groupSize || 1), 0) / attendees.length).toFixed(1)
-                        : '—'}
-                    </div>
-                  </div>
                   <div className="space-y-2 rounded-lg border p-4 text-center">
                     <div className="text-sm font-medium text-muted-foreground">Top Registration Type</div>
                     <div className="text-2xl font-bold">
