@@ -94,6 +94,7 @@ interface Attendee {
   country?: string;
   registrationType?: string;
   interests?: string[];
+  needsVisa?: boolean;
   isCheckedIn?: boolean;
 }
 
@@ -129,7 +130,9 @@ export default function AttendeesPage() {
     { id: 'firstName', label: 'Attendee', sortable: true },
     { id: 'organization', label: 'Organization', sortable: true },
     { id: 'country', label: 'Country', sortable: true },
+    { id: 'registrationType', label: 'Type', sortable: true },
     { id: 'interests', label: 'Interests', sortable: false },
+    { id: 'needsVisa', label: 'Visa', sortable: true },
     { id: 'isCheckedIn', label: 'Status', sortable: true },
   ];
 
@@ -474,6 +477,11 @@ export default function AttendeesPage() {
                             </div>
                           </TableCell>
                           <TableCell>
+                            <Badge variant={attendee.needsVisa ? 'secondary' : 'outline'}>
+                              {attendee.needsVisa ? 'Yes' : 'No'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
                             <div className="flex items-center gap-2">
                               {attendee.isCheckedIn ? (
                                 <UserCheck className="h-4 w-4 text-green-600" />
@@ -557,7 +565,7 @@ export default function AttendeesPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
+                        <TableCell colSpan={8} className="h-24 text-center">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <Users className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">No attendees found</p>

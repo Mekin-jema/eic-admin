@@ -60,6 +60,7 @@ export interface AttendeeRegistration {
   registrationType: string;
   groupSize?: number | null;
   specialNeeds?: string | null;
+  needsVisa?: boolean | null;
   isCheckedIn: boolean;
   checkInTime?: string | null;
   checkOutTime?: string | null;
