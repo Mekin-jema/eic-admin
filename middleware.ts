@@ -7,7 +7,7 @@ const LEGACY_ADMIN_LOGIN = '/admin/login'
 export function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl
   const token = req.cookies.get('admin_token')?.value
-  const isAdminRoute = pathname.startsWith(ADMIN_PATH)
+  // const isAdminRoute = pathname.startsWith(ADMIN_PATH)
   const isLogin = pathname === LOGIN_PATH
 
   // Support old /admin/login link by redirecting to /login

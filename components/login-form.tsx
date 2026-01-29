@@ -138,13 +138,16 @@ export function LoginForm({
               </Field>
             </FieldGroup>
           </form>
-          <div className="relative hidden md:block">
-            <img
-              src="/banner.jpg"
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          </div>
+             <div className="relative hidden md:block">
+  <img
+    src="/login-banner.jpg"
+    alt="Image"
+    className="absolute inset-0 h-full w-full object-cover"
+  />
+  {/* Dark overlay */}
+  <div className="absolute inset-0 bg-black/40"></div>
+</div>
+
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center">
