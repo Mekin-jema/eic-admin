@@ -55,7 +55,6 @@ export interface AttendeeRegistration {
   occupation: string;
   organization?: string | null;
   country: string;
-  hearAboutUs: string;
   interests: string[];
   registrationType: string;
   groupSize?: number | null;
