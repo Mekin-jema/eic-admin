@@ -7,7 +7,7 @@ const LEGACY_ADMIN_LOGIN = '/admin/login'
 export function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl
   const token = req.cookies.get('admin_token')?.value
-  // const isAdminRoute = pathname.startsWith(ADMIN_PATH)
+  const isAdminRoute = pathname.startsWith(ADMIN_PATH)
   const isLogin = pathname === LOGIN_PATH
 
   // Support old /admin/login link by redirecting to /login
@@ -30,14 +30,14 @@ export function middleware(req: NextRequest) {
   }
 
   // Protect admin routes
-  // if (isAdminRoute) {
-  //   if (!token) {
-  //     const url = req.nextUrl.clone()
-  //     url.pathname = LOGIN_PATH
-  //     url.searchParams.set('next', pathname)
-  //     return NextResponse.redirect(url)
-  //   }
-  // }
+  if (isAdminRoute) {
+    if (!token) {
+      const url = req.nextUrl.clone()
+      url.pathname = LOGIN_PATH
+      url.searchParams.set('next', pathname)
+      return NextResponse.redirect(url)
+    }
+  }
 
   return NextResponse.next()
 }
