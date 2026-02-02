@@ -1,3 +1,51 @@
+// Get attendee by ID (API call)
+export async function getAttendeeById(id: string, token?: string) {
+  const headers = token ? { Authorization: `Bearer ${token}` } : authHeader();
+  const res = await fetch(`${API_BASE}/attendee/attendee-registration/${id}`, {
+    credentials: 'include',
+    headers,
+  });
+  if (!res.ok) throw new Error('Attendee not found');
+  const data = await res.json();
+  return data.attendee;
+}
+// Get badge URL for attendee
+export function getAttendeeBadgeUrl(id: string): string {
+  return `${API_BASE}/attendee/attendee-registration/${id}/badge`;
+}
+
+// Get export data URL for attendee
+export function getAttendeeExportUrl(id: string): string {
+  return `${API_BASE}/attendee/attendee-registration/${id}/export`;
+}
+
+// Send email to attendee by ID
+export async function sendAttendeeEmail(id: string, data: { subject: string; body: string; includeBadge?: boolean }): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/attendee/attendee-registration/${id}/send-email`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to send email');
+  return res.json();
+}
+
+// Update attendee by ID
+export async function updateAttendeeById(id: string, data: Partial<AttendeeRegistration>): Promise<{ success: boolean; attendee: AttendeeRegistration }> {
+  const res = await fetch(`${API_BASE}/attendee/attendee-registration/${id}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update attendee');
+  return res.json();
+}
+
+// Delete attendee by ID
+
+
 // Simple API client for the EIC backend admin endpoints
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') || 'https://eic-backend-9heh.onrender.com/api';
 
@@ -15,8 +63,6 @@ const authHeader = (): Record<string, string> => {
 
 export interface TotalCounts {
   attendees: number;
-  exhibitors: number;
-  sponsors: number;
   contacts: number;
   total: number;
 }
@@ -35,13 +81,9 @@ export interface AnalyticsResponse {
     totalCounts: TotalCounts;
     recentActivity: {
       attendees: RecentActivityItem[];
-      exhibitors: RecentActivityItem[];
-      sponsors: RecentActivityItem[];
     };
     dailyAnalytics: {
-      attendees: Array<{ createdAt: string; _count: { id: number } }>;
-      exhibitors: Array<{ createdAt: string; _count: { id: number } }>;
-      sponsors: Array<{ createdAt: string; _count: { id: number } }>;
+      attendees: Array<{ date: string; count: number }>;
     };
   };
 }
@@ -52,17 +94,26 @@ export interface AttendeeRegistration {
   lastName: string;
   email: string;
   phoneNumber: string;
-  occupation: string;
-  organization?: string | null;
+  organization: string;
+  jobTitle: string;
   country: string;
-  interests: string[];
-  registrationType: string;
-  groupSize?: number | null;
-  specialNeeds?: string | null;
+  category?: string | null;
+  sectorInterest?: string | null;
+  hasExistingCompany?: boolean | null;
+  companyName?: string | null;
+  companySector?: string | null;
+  businessLicenseUrl?: string | null;
+  attendance?: string | null;
   needsVisa?: boolean | null;
+  siteVisit?: boolean | null;
+  passportCopyUrl?: string | null;
+  specialRequirements?: string | null;
+  communicationPreference: string;
   isCheckedIn: boolean;
   checkInTime?: string | null;
   checkOutTime?: string | null;
+  lastScannedAt?: string | null;
+  scanCount?: number | null;
   createdAt: string;
 }
 
@@ -89,8 +140,6 @@ export interface AttendanceSummaryResponse {
     recentCheckIns: number;
     breakdown: {
       attendees: { total: number; checkedIn: number };
-      exhibitors: { total: number; checkedIn: number };
-      sponsors: { total: number; checkedIn: number };
     };
   };
 }
@@ -107,6 +156,7 @@ export interface CommunicationTemplate {
   key: string;
   name: string;
   subject: string;
+  body?: string | null;
   usedCount: number;
   lastUsedAt?: string | null;
 }
@@ -133,10 +183,51 @@ export interface CommunicationLogItem {
   status: string;
   createdAt: string;
 }
-
+// Delete attendee by ID
+export async function deleteAttendeeById(id: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/attendee/attendee-registration/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: authHeader(),
+  });
+  if (!res.ok) throw new Error('Failed to delete attendee');
+  return res.json();
+}
 export async function getCommTemplates(): Promise<{ success: boolean; data: CommunicationTemplate[] }> {
   const res = await fetch(`${API_BASE}/admin/communications/templates`, { credentials: 'include', headers: authHeader() });
   if (!res.ok) throw new Error('Failed to fetch templates');
+  return res.json();
+}
+
+export async function createCommTemplate(payload: { key: string; name: string; subject: string; body?: string }): Promise<{ success: boolean; data: CommunicationTemplate }> {
+  const res = await fetch(`${API_BASE}/admin/communications/templates`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to create template');
+  return res.json();
+}
+
+export async function updateCommTemplate(id: string, payload: { name?: string; subject?: string; body?: string }): Promise<{ success: boolean; data: CommunicationTemplate }> {
+  const res = await fetch(`${API_BASE}/admin/communications/templates/${id}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to update template');
+  return res.json();
+}
+
+export async function deleteCommTemplate(id: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/admin/communications/templates/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: authHeader(),
+  });
+  if (!res.ok) throw new Error('Failed to delete template');
   return res.json();
 }
 
@@ -160,6 +251,39 @@ export async function sendCommunicationEmail(payload: { templateKey?: string; au
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error('Failed to send communication');
+  return res.json();
+}
+
+export async function sendTestCommunicationEmail(payload: { email: string; subject: string; body: string }): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/admin/communications/email/test`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to send test email');
+  return res.json();
+}
+
+export async function sendSelectedRecipientEmails(payload: { templateKey?: string; recipientIds: string[]; subject: string; body: string }): Promise<{ success: boolean; data: { attempted: number; sent: number; errors: Array<{ email: string; error: string }> } }> {
+  const res = await fetch(`${API_BASE}/admin/communications/email/recipients`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to send recipient emails');
+  return res.json();
+}
+
+export async function scheduleCommunicationEmail(payload: { templateKey?: string; audience: string; subject: string; body: string; scheduledFor: string }): Promise<{ success: boolean; data: { id: string; scheduledFor: string } }> {
+  const res = await fetch(`${API_BASE}/admin/communications/email/schedule`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to schedule communication');
   return res.json();
 }
 

@@ -1,11 +1,12 @@
 // app/admin/reports/page.tsx
 'use client';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Download, Printer, FileText, Users, CheckCircle, Globe, 
-  Target, Calendar, CreditCard, Filter,
+  Target, Calendar, Filter,
   Search, Eye, Share2, Clock,
   FileSpreadsheet, FilePieChart, FileBarChart, FileJson
 } from 'lucide-react';
@@ -17,95 +18,287 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
+import Loading from './loading';
+import { getAnalytics, getAttendanceSummary, getAttendees, type AttendeeRegistration } from '@/lib/adminApi';
 
-const reportTemplates = [
-  {
-    id: 'attendees',
-    title: 'Attendee Directory',
-    description: 'Complete list with contact details',
-    icon: Users,
-    format: ['PDF', 'Excel', 'CSV'],
-    lastGenerated: '2 hours ago',
-    size: '2.4 MB',
-    rows: 1247,
-  },
-  {
-    id: 'checkin',
-    title: 'Check-in Report',
-    description: 'Detailed check-in analytics',
-    icon: CheckCircle,
-    format: ['PDF', 'Excel'],
-    lastGenerated: '1 hour ago',
-    size: '1.8 MB',
-    rows: 892,
-  },
-  {
-    id: 'country',
-    title: 'Country Analysis',
-    description: 'Demographics by country',
-    icon: Globe,
-    format: ['PDF', 'CSV'],
-    lastGenerated: '3 hours ago',
-    size: '1.2 MB',
-    rows: 42,
-  },
-  {
-    id: 'interests',
-    title: 'Sector Interests',
-    description: 'Investment sector distribution',
-    icon: Target,
-    format: ['PDF', 'Excel'],
-    lastGenerated: '4 hours ago',
-    size: '980 KB',
-    rows: 8,
-  },
-  {
-    id: 'financial',
-    title: 'Financial Summary',
-    description: 'Revenue and expenses',
-    icon: CreditCard,
-    format: ['PDF', 'Excel'],
-    lastGenerated: 'Yesterday',
-    size: '3.2 MB',
-    rows: 156,
-  },
-  {
-    id: 'daily',
-    title: 'Daily Summary',
-    description: 'Day-wise activity report',
-    icon: Calendar,
-    format: ['PDF'],
-    lastGenerated: 'Today',
-    size: '540 KB',
-    rows: 32,
-  },
-];
+type ReportTemplate = {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  format: string[];
+  lastGenerated: string;
+  size: string;
+  rows: number;
+};
 
-const customReports = [
-  {
-    id: 'custom-1',
-    name: 'VIP Engagement',
-    created: '2024-01-15',
-    filters: ['Type:VIP', 'Checked-in:Yes'],
-    schedule: 'Daily',
-  },
-  {
-    id: 'custom-2',
-    name: 'Speaker Schedule',
-    created: '2024-01-10',
-    filters: ['Type:Speaker', 'Country:All'],
-    schedule: 'Weekly',
-  },
-  {
-    id: 'custom-3',
-    name: 'New Registrations',
-    created: '2024-01-05',
-    filters: ['Date:Last 7 days'],
-    schedule: 'Daily',
-  },
-];
+const formatBytes = (bytes: number) => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+};
+
+const categoryLabels: Record<string, string> = {
+  inv: 'International Investor',
+  loc: 'Domestic Investor',
+  gov: 'Government Official',
+  dip: 'Diplomat / Development Partner',
+  med: 'Media',
+  aca: 'Academia / Research Institution',
+  con: 'Business Consultant',
+  oth: 'Other',
+};
+
+const sectorLabels: Record<string, string> = {
+  agri: 'Agriculture and Agribusiness',
+  manu: 'Manufacturing and Industry',
+  tech: 'Technology and Innovation',
+  energy: 'Energy and Renewable Resources',
+  infra: 'Infrastructure and Construction',
+  tour: 'Tourism and Hospitality',
+  health: 'Healthcare and Pharmaceuticals',
+  fin: 'Finance and Banking',
+  mine: 'Mining and Natural Resources',
+  prop: 'Real Estate and Property Development',
+  logi: 'Transportation and Logistics',
+  tele: 'Telecommunications',
+};
+
+const getCategoryLabel = (value?: string | null) => (value ? categoryLabels[value] ?? value : '—');
+const getSectorLabel = (value?: string | null) => (value ? sectorLabels[value] ?? value : '—');
+const getCountryLabel = (value?: string | null) => {
+  if (!value) return '—';
+  if (value.length === 2) {
+    try {
+      const displayNames = new Intl.DisplayNames(['en'], { type: 'region' });
+      return displayNames.of(value.toUpperCase()) ?? value;
+    } catch {
+      return value;
+    }
+  }
+  return value;
+};
+
+const downloadCSV = (filename: string, rows: Array<Record<string, string | number | null | undefined>>) => {
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const escape = (value: string | number | null | undefined) => {
+    if (value === null || value === undefined) return '';
+    const str = String(value).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+  const csv = [headers.join(','), ...rows.map((row) => headers.map((h) => escape(row[h])).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 export default function ReportsPage() {
+  const [attendees, setAttendees] = useState<AttendeeRegistration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [attendanceSummary, setAttendanceSummary] = useState<{ checkedInUsers: number; totalUsers: number } | null>(null);
+  const [dailyAnalytics, setDailyAnalytics] = useState<Array<{ date: string; count: number }>>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const [attendeeRes, summaryRes, analyticsRes] = await Promise.all([
+          getAttendees(),
+          getAttendanceSummary(),
+          getAnalytics(),
+        ]);
+        setAttendees(attendeeRes.data || []);
+        setAttendanceSummary({
+          checkedInUsers: summaryRes.summary.checkedInUsers,
+          totalUsers: summaryRes.summary.totalUsers,
+        });
+        setDailyAnalytics(analyticsRes.data.dailyAnalytics.attendees || []);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load reports data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const countryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    attendees.forEach((attendee) => {
+      if (!attendee.country) return;
+      const label = getCountryLabel(attendee.country);
+      counts[label] = (counts[label] || 0) + 1;
+    });
+    return counts;
+  }, [attendees]);
+
+  const sectorCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    attendees.forEach((attendee) => {
+      if (!attendee.sectorInterest) return;
+      const label = getSectorLabel(attendee.sectorInterest);
+      counts[label] = (counts[label] || 0) + 1;
+    });
+    return counts;
+  }, [attendees]);
+
+  const reportTemplates: ReportTemplate[] = useMemo(() => {
+    const attendeeRows = attendees.length;
+    const checkInRows = attendees.filter((attendee) => attendee.isCheckedIn).length;
+    const countryRows = Object.keys(countryCounts).length;
+    const sectorRows = Object.keys(sectorCounts).length;
+    const dailyRows = dailyAnalytics.length;
+
+    const attendeeSize = formatBytes(new Blob([JSON.stringify(attendees)]).size);
+    const checkInSize = formatBytes(new Blob([JSON.stringify(attendees.filter((a) => a.isCheckedIn))]).size);
+    const countrySize = formatBytes(new Blob([JSON.stringify(countryCounts)]).size);
+    const sectorSize = formatBytes(new Blob([JSON.stringify(sectorCounts)]).size);
+    const dailySize = formatBytes(new Blob([JSON.stringify(dailyAnalytics)]).size);
+
+    return [
+      {
+        id: 'attendees',
+        title: 'Attendee Directory',
+        description: 'Complete list with contact details',
+        icon: Users,
+        format: ['CSV'],
+        lastGenerated: 'Live data',
+        size: attendeeSize,
+        rows: attendeeRows,
+      },
+      {
+        id: 'checkin',
+        title: 'Check-in Report',
+        description: 'Detailed check-in analytics',
+        icon: CheckCircle,
+        format: ['CSV'],
+        lastGenerated: 'Live data',
+        size: checkInSize,
+        rows: checkInRows,
+      },
+      {
+        id: 'country',
+        title: 'Country Analysis',
+        description: 'Demographics by country',
+        icon: Globe,
+        format: ['CSV'],
+        lastGenerated: 'Live data',
+        size: countrySize,
+        rows: countryRows,
+      },
+      {
+        id: 'interests',
+        title: 'Sector Interests',
+        description: 'Investment sector distribution',
+        icon: Target,
+        format: ['CSV'],
+        lastGenerated: 'Live data',
+        size: sectorSize,
+        rows: sectorRows,
+      },
+      {
+        id: 'daily',
+        title: 'Daily Summary',
+        description: 'Day-wise activity report',
+        icon: Calendar,
+        format: ['CSV'],
+        lastGenerated: 'Live data',
+        size: dailySize,
+        rows: dailyRows,
+      },
+    ];
+  }, [attendees, countryCounts, sectorCounts, dailyAnalytics]);
+
+  const downloadReport = (id: string) => {
+    if (id === 'attendees') {
+      downloadCSV(
+        'attendee-directory.csv',
+        attendees.map((attendee) => ({
+          id: attendee.id,
+          firstName: attendee.firstName,
+          lastName: attendee.lastName,
+          email: attendee.email,
+          phoneNumber: attendee.phoneNumber,
+          organization: attendee.organization,
+          jobTitle: attendee.jobTitle,
+          country: getCountryLabel(attendee.country),
+          category: getCategoryLabel(attendee.category),
+          sectorInterest: getSectorLabel(attendee.sectorInterest),
+          attendance: attendee.attendance ?? '',
+          needsVisa: attendee.needsVisa ? 'Yes' : 'No',
+          siteVisit: attendee.siteVisit ? 'Yes' : 'No',
+          communicationPreference: attendee.communicationPreference,
+          isCheckedIn: attendee.isCheckedIn ? 'Yes' : 'No',
+          checkInTime: attendee.checkInTime ?? '',
+          checkOutTime: attendee.checkOutTime ?? '',
+        }))
+      );
+      return;
+    }
+
+    if (id === 'checkin') {
+      downloadCSV(
+        'checkin-report.csv',
+        attendees
+          .filter((attendee) => attendee.isCheckedIn)
+          .map((attendee) => ({
+            id: attendee.id,
+            name: `${attendee.firstName} ${attendee.lastName}`,
+            email: attendee.email,
+            checkInTime: attendee.checkInTime ?? '',
+            checkOutTime: attendee.checkOutTime ?? '',
+          }))
+      );
+      return;
+    }
+
+    if (id === 'country') {
+      downloadCSV(
+        'country-analysis.csv',
+        Object.entries(countryCounts).map(([country, count]) => ({ country, count }))
+      );
+      return;
+    }
+
+    if (id === 'interests') {
+      downloadCSV(
+        'sector-interests.csv',
+        Object.entries(sectorCounts).map(([sectorInterest, count]) => ({ sectorInterest, count }))
+      );
+      return;
+    }
+
+    if (id === 'daily') {
+      downloadCSV(
+        'daily-summary.csv',
+        dailyAnalytics.map((entry) => ({ date: entry.date, count: entry.count }))
+      );
+    }
+  };
+
+  if (loading) return <Loading />;
+
+  if (error) {
+    return (
+      <div className="space-y-6 pl-9 pr-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-sm text-destructive">{error}</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pl-9 pr-4">
       {/* Header */}
@@ -229,7 +422,7 @@ export default function ReportsPage() {
                           <Eye className="h-4 w-4 mr-2" />
                           Preview
                         </Button>
-                        <Button size="sm" className="flex-1">
+                        <Button size="sm" className="flex-1" onClick={() => downloadReport(report.id)}>
                           <Download className="h-4 w-4 mr-2" />
                           Download
                         </Button>
@@ -249,22 +442,38 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-4">
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="h-auto py-4 flex flex-col gap-2"
+                  onClick={() => downloadReport('attendees')}
+                >
                   <FileSpreadsheet className="h-6 w-6 text-green-600" />
                   <span>Excel Export</span>
                   <span className="text-xs text-muted-foreground">Full dataset</span>
                 </Button>
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="h-auto py-4 flex flex-col gap-2"
+                  onClick={() => downloadReport('interests')}
+                >
                   <FilePieChart className="h-6 w-6 text-blue-600" />
                   <span>Analytics Data</span>
                   <span className="text-xs text-muted-foreground">Charts & stats</span>
                 </Button>
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="h-auto py-4 flex flex-col gap-2"
+                  onClick={() => downloadReport('daily')}
+                >
                   <FileBarChart className="h-6 w-6 text-purple-600" />
                   <span>Summary Report</span>
                   <span className="text-xs text-muted-foreground">Executive view</span>
                 </Button>
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="h-auto py-4 flex flex-col gap-2"
+                  onClick={() => downloadReport('attendees')}
+                >
                   <FileJson className="h-6 w-6 text-amber-600" />
                   <span>JSON Data</span>
                   <span className="text-xs text-muted-foreground">API integration</span>
@@ -292,42 +501,10 @@ export default function ReportsPage() {
             <CardContent>
               <ScrollArea className="h-[400px]">
                 <div className="space-y-4">
-                  {customReports.map((report) => (
-                    <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">{report.name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            {report.filters.map((filter) => (
-                              <Badge key={filter} variant="outline" className="text-xs">
-                                {filter}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm font-medium">Created: {report.created}</p>
-                          <p className="text-xs text-muted-foreground">Schedule: {report.schedule}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="icon">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <Share2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
+                    <FileText className="h-8 w-8" />
+                    <p className="text-sm">No custom reports saved yet.</p>
+                  </div>
                 </div>
               </ScrollArea>
             </CardContent>
@@ -345,7 +522,20 @@ export default function ReportsPage() {
                   <div className="space-y-3">
                     <h4 className="font-medium">Select Fields</h4>
                     <div className="space-y-2">
-                      {['Name', 'Email', 'Phone', 'Country', 'Organization', 'Occupation', 'Registration Type', 'Interests'].map((field) => (
+                      {[
+                        'Name',
+                        'Email',
+                        'Phone',
+                        'Country',
+                        'Organization',
+                        'Job Title',
+                        'Category',
+                        'Sector Interest',
+                        'Attendance',
+                        'Visa Assistance',
+                        'Site Visit',
+                        'Communication Preference',
+                      ].map((field) => (
                         <div key={field} className="flex items-center gap-3">
                           <input type="checkbox" id={field} className="h-4 w-4" />
                           <label htmlFor={field} className="text-sm">{field}</label>
@@ -358,15 +548,21 @@ export default function ReportsPage() {
                     <h4 className="font-medium">Apply Filters</h4>
                     <div className="space-y-4">
                       <div>
-                        <label className="text-sm font-medium mb-2 block">Registration Type</label>
+                        <label className="text-sm font-medium mb-2 block">Category</label>
                         <Select>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
+                            <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            <SelectItem value="vip">VIP Only</SelectItem>
-                            <SelectItem value="speaker">Speakers Only</SelectItem>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            <SelectItem value="inv">International Investor</SelectItem>
+                            <SelectItem value="loc">Domestic Investor</SelectItem>
+                            <SelectItem value="gov">Government Official</SelectItem>
+                            <SelectItem value="dip">Diplomat / Development Partner</SelectItem>
+                            <SelectItem value="med">Media</SelectItem>
+                            <SelectItem value="aca">Academia / Research Institution</SelectItem>
+                            <SelectItem value="con">Business Consultant</SelectItem>
+                            <SelectItem value="oth">Other</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

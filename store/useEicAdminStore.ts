@@ -14,6 +14,7 @@ import {
   getCommStats,
   getRecentMessages,
   sendCommunicationEmail,
+  scheduleCommunicationEmail,
   type CommunicationTemplate,
   type CommunicationStats,
   type CommunicationLogItem,
@@ -54,6 +55,7 @@ interface EicAdminState {
 
   fetchCommunications: () => Promise<void>;
   sendEmail: (payload: { templateKey?: string; audience: string; subject: string; body: string }) => Promise<void>;
+  scheduleEmail: (payload: { templateKey?: string; audience: string; subject: string; body: string; scheduledFor: string }) => Promise<void>;
 }
 
 export const useEicAdminStore = create<EicAdminState>()(
@@ -166,6 +168,20 @@ export const useEicAdminStore = create<EicAdminState>()(
           await get().fetchCommunications();
         } catch (err) {
           const msg = handleError(err, 'Failed to send email');
+          set({ error: msg });
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      scheduleEmail: async (payload) => {
+        set({ loading: true, error: null });
+        try {
+          const res = await scheduleCommunicationEmail(payload);
+          toast.success(`Scheduled for ${new Date(res.data.scheduledFor).toLocaleString()}`);
+          await get().fetchCommunications();
+        } catch (err) {
+          const msg = handleError(err, 'Failed to schedule email');
           set({ error: msg });
         } finally {
           set({ loading: false });

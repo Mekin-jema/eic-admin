@@ -29,6 +29,47 @@ import Loading from './loading';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
+const categoryLabels: Record<string, string> = {
+  inv: 'International Investor',
+  loc: 'Domestic Investor',
+  gov: 'Government Official',
+  dip: 'Diplomat / Development Partner',
+  med: 'Media',
+  aca: 'Academia / Research Institution',
+  con: 'Business Consultant',
+  oth: 'Other',
+};
+
+const sectorLabels: Record<string, string> = {
+  agri: 'Agriculture and Agribusiness',
+  manu: 'Manufacturing and Industry',
+  tech: 'Technology and Innovation',
+  energy: 'Energy and Renewable Resources',
+  infra: 'Infrastructure and Construction',
+  tour: 'Tourism and Hospitality',
+  health: 'Healthcare and Pharmaceuticals',
+  fin: 'Finance and Banking',
+  mine: 'Mining and Natural Resources',
+  prop: 'Real Estate and Property Development',
+  logi: 'Transportation and Logistics',
+  tele: 'Telecommunications',
+};
+
+const getCategoryLabel = (value?: string | null) => (value ? categoryLabels[value] ?? value : '—');
+const getSectorLabel = (value?: string | null) => (value ? sectorLabels[value] ?? value : '—');
+const getCountryLabel = (value?: string | null) => {
+  if (!value) return '—';
+  if (value.length === 2) {
+    try {
+      const displayNames = new Intl.DisplayNames(['en'], { type: 'region' });
+      return displayNames.of(value.toUpperCase()) ?? value;
+    } catch {
+      return value;
+    }
+  }
+  return value;
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
@@ -62,6 +103,9 @@ export default function AdminDashboard() {
     loadData();
   }, []);
 
+  console.log('Attendees:', attendees);
+  console.log('Summary:', summary);
+
   const totalAttendees = attendees.length;
   const checkedInAttendees = attendees.filter((a) => a.isCheckedIn).length;
   const attendeesTotalFromSummary = summary?.breakdown?.attendees?.total;
@@ -70,7 +114,7 @@ export default function AdminDashboard() {
   const overallChecked = attendeesCheckedFromSummary ?? checkedInAttendees;
   const checkInRate = overallTotal > 0 ? Math.round((overallChecked / overallTotal) * 100) : 0;
   const uniqueCountries = useMemo(
-    () => new Set(attendees.map((a) => a.country).filter(Boolean)).size,
+    () => new Set(attendees.map((a) => getCountryLabel(a.country)).filter(Boolean)).size,
     [attendees],
   );
   const uniqueOrganizations = useMemo(
@@ -82,26 +126,28 @@ export default function AdminDashboard() {
     const counts: Record<string, number> = {};
     attendees.forEach((a) => {
       if (!a.country) return;
-      counts[a.country] = (counts[a.country] || 0) + 1;
+      const label = getCountryLabel(a.country);
+      counts[label] = (counts[label] || 0) + 1;
     });
     return counts;
   }, [attendees]);
 
-  const typeDistribution = useMemo(() => {
+  const categoryDistribution = useMemo(() => {
     const counts: Record<string, number> = {};
     attendees.forEach((a) => {
-      if (!a.registrationType) return;
-      counts[a.registrationType] = (counts[a.registrationType] || 0) + 1;
+      if (!a.category) return;
+      const label = getCategoryLabel(a.category);
+      counts[label] = (counts[label] || 0) + 1;
     });
     return counts;
   }, [attendees]);
 
-  const interestCounts = useMemo(() => {
+  const sectorCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     attendees.forEach((a) => {
-      (a.interests || []).forEach((interest) => {
-        counts[interest] = (counts[interest] || 0) + 1;
-      });
+      if (!a.sectorInterest) return;
+      const label = getSectorLabel(a.sectorInterest);
+      counts[label] = (counts[label] || 0) + 1;
     });
     return counts;
   }, [attendees]);
@@ -136,18 +182,18 @@ export default function AdminDashboard() {
     [countryDistribution],
   );
 
-  const topInterests = useMemo(
+  const topSectors = useMemo(
     () =>
-      Object.entries(interestCounts)
+      Object.entries(sectorCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
-        .map(([interest, count]) => ({ interest, count })),
-    [interestCounts],
+        .map(([sector, count]) => ({ sector, count })),
+    [sectorCounts],
   );
 
-  const typeData = useMemo(
-    () => Object.entries(typeDistribution).map(([name, value]) => ({ name, value })),
-    [typeDistribution],
+  const categoryData = useMemo(
+    () => Object.entries(categoryDistribution).map(([name, value]) => ({ name, value })),
+    [categoryDistribution],
   );
 
   const averageDaily = useMemo(() => {
@@ -156,9 +202,9 @@ export default function AdminDashboard() {
     return Math.round(total / dailyData.length);
   }, [dailyData]);
 
-  const topType = useMemo(() => {
-    return [...typeData].sort((a, b) => b.value - a.value)[0]?.name || '—';
-  }, [typeData]);
+  const topCategory = useMemo(() => {
+    return [...categoryData].sort((a, b) => b.value - a.value)[0]?.name || '—';
+  }, [categoryData]);
 
   if (loading) return <Loading />;
 
@@ -287,7 +333,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="rounded-lg border p-3">
                   <div className="text-xs text-muted-foreground">Top registration type</div>
-                  <div className="text-lg font-semibold">{topType}</div>
+                  <div className="text-lg font-semibold">{topCategory}</div>
                 </div>
               </div>
             </CardContent>
@@ -341,7 +387,7 @@ export default function AdminDashboard() {
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
-                    data={typeData}
+                    data={categoryData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -349,7 +395,7 @@ export default function AdminDashboard() {
                     outerRadius={80}
                     dataKey="value"
                   >
-                    {typeData.map((entry, index) => (
+                    {categoryData.map((entry: { name: string; value: number }, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -386,15 +432,15 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Interests</CardTitle>
-              <CardDescription>What attendees care about most</CardDescription>
+              <CardTitle>Top Sectors</CardTitle>
+              <CardDescription>Most selected sector interests</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {topInterests.map((item) => (
-                  <div key={item.interest} className="space-y-1">
+                {topSectors.map((item: { sector: string; count: number }) => (
+                  <div key={item.sector} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{item.interest}</span>
+                      <span className="font-medium">{item.sector}</span>
                       <span className="text-muted-foreground">{item.count}</span>
                     </div>
                     <Progress value={overallTotal ? (item.count / overallTotal) * 100 : 0} className="h-2" />

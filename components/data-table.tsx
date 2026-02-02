@@ -31,7 +31,7 @@ const generateAttendees = (count: number) => {
   const occupations = ['Investor', 'CEO', 'Director', 'Manager', 'Analyst'];
   const organizations = ['Microsoft', 'Google', 'World Bank', 'Safaricom', 'Dangote'];
   const interests = ['Technology', 'Agriculture', 'Energy', 'Finance', 'Infrastructure'];
-  const types = ['VIP', 'Standard', 'Speaker', 'Exhibitor', 'Media'];
+  const types = ['VIP', 'Standard', 'Speaker', 'Media'];
   
   return Array.from({ length: count }, (_, i) => ({
     id: `ATT-${1000 + i}`,
@@ -177,7 +177,6 @@ export default function AttendeesPage() {
                   <SelectItem value="VIP">VIP</SelectItem>
                   <SelectItem value="Standard">Standard</SelectItem>
                   <SelectItem value="Speaker">Speaker</SelectItem>
-                  <SelectItem value="Exhibitor">Exhibitor</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
