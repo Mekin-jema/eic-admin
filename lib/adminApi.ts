@@ -98,6 +98,7 @@ export interface AttendeeRegistration {
   jobTitle: string;
   country: string;
   category?: string | null;
+  otherCategory?: string | null;
   sectorInterest?: string | null;
   hasExistingCompany?: boolean | null;
   companyName?: string | null;

@@ -155,6 +155,7 @@ export default function AttendeesPage() {
         (attendee.organization || '').toLowerCase().includes(term) ||
         (attendee.jobTitle || '').toLowerCase().includes(term) ||
         (attendee.category || '').toLowerCase().includes(term) ||
+        (attendee.otherCategory || '').toLowerCase().includes(term) ||
         (attendee.attendance || '').toLowerCase().includes(term);
 
       const matchesType = filterType === 'all' || attendee.category === filterType;
@@ -674,7 +675,7 @@ const htmlBody = `
   };
 
   const categoryLabels: Record<string, string> = {
-    inv: 'International Investor',
+    inv: 'Investor',
     loc: 'Domestic Investor',
     gov: 'Government Official',
     dip: 'Diplomat / Development Partner',
@@ -692,6 +693,7 @@ const htmlBody = `
     infra: 'Infrastructure and Construction',
     tour: 'Tourism and Hospitality',
     health: 'Healthcare and Pharmaceuticals',
+    edu: 'Education and Training',
     fin: 'Finance and Banking',
     mine: 'Mining and Natural Resources',
     prop: 'Real Estate and Property Development',
@@ -705,7 +707,11 @@ const htmlBody = `
     both: 'Both Days',
   };
 
-  const getCategoryLabel = (value?: string | null) => (value ? categoryLabels[value] ?? value : '—');
+  const getCategoryLabel = (value?: string | null, otherValue?: string | null) => {
+    if (!value) return '—';
+    if (value === 'oth' && otherValue) return otherValue;
+    return categoryLabels[value] ?? value;
+  };
   const getAttendanceLabel = (value?: string | null) => (value ? attendanceLabels[value] ?? value : '—');
   const getSectorLabel = (value?: string | null) => (value ? sectorLabels[value] ?? value : '—');
   const getCountryLabel = (value?: string | null) => {
@@ -779,8 +785,7 @@ const htmlBody = `
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="inv">International Investor</SelectItem>
-                  <SelectItem value="loc">Domestic Investor</SelectItem>
+                  <SelectItem value="inv">Investor</SelectItem>
                   <SelectItem value="gov">Government Official</SelectItem>
                   <SelectItem value="dip">Diplomat / Development Partner</SelectItem>
                   <SelectItem value="med">Media</SelectItem>
@@ -898,7 +903,7 @@ const htmlBody = `
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {getCategoryLabel(attendee.category)}
+                              {getCategoryLabel(attendee.category, attendee.otherCategory)}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -1178,8 +1183,16 @@ const htmlBody = `
                 </div>
                 <div>
                   <div className="text-xs uppercase text-muted-foreground">Category</div>
-                  <div className="font-medium">{getCategoryLabel(selectedAttendee.category)}</div>
+                  <div className="font-medium">
+                    {getCategoryLabel(selectedAttendee.category, selectedAttendee.otherCategory)}
+                  </div>
                 </div>
+                {selectedAttendee.category === 'oth' && (
+                  <div>
+                    <div className="text-xs uppercase text-muted-foreground">Other Category</div>
+                    <div className="font-medium">{selectedAttendee.otherCategory || '—'}</div>
+                  </div>
+                )}
                 <div>
                   <div className="text-xs uppercase text-muted-foreground">Sector Interest</div>
                   <div className="font-medium">{getSectorLabel(selectedAttendee.sectorInterest)}</div>

@@ -98,18 +98,18 @@ const Header = () => {
                     <BreadcrumbList>
                         <BreadcrumbItem className="hidden md:block">
                             <BreadcrumbLink asChild>
-                                <Link href="/dashboard">Dashboard</Link>
+                                <Link href="/admin">Dashboard</Link>
                             </BreadcrumbLink>
                         </BreadcrumbItem>
                         {usePathname()
                             .split("/")
-                            .filter((seg) => seg && seg !== "dashboard")
+                            .filter((seg) => seg && seg !== "admin")
                             .map((seg, i, arr) => (
                                 <React.Fragment key={i}>
                                     <BreadcrumbSeparator className="hidden md:block" />
                                     <BreadcrumbItem className="text-muted-foreground capitalize">
                                         <BreadcrumbLink asChild>
-                                            <Link href={`/${["dashboard", ...arr.slice(0, i + 1)].join("/")}`}>
+                                            <Link href={`/${["admin", ...arr.slice(0, i + 1)].join("/")}`}>
                                                 {seg.replace(/-/g, " ")}
                                             </Link>
                                         </BreadcrumbLink>

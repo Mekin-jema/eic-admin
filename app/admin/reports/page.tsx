@@ -41,7 +41,7 @@ const formatBytes = (bytes: number) => {
 };
 
 const categoryLabels: Record<string, string> = {
-  inv: 'International Investor',
+  inv: 'Investor',
   loc: 'Domestic Investor',
   gov: 'Government Official',
   dip: 'Diplomat / Development Partner',
@@ -59,6 +59,7 @@ const sectorLabels: Record<string, string> = {
   infra: 'Infrastructure and Construction',
   tour: 'Tourism and Hospitality',
   health: 'Healthcare and Pharmaceuticals',
+  edu: 'Education and Training',
   fin: 'Finance and Banking',
   mine: 'Mining and Natural Resources',
   prop: 'Real Estate and Property Development',
@@ -66,7 +67,11 @@ const sectorLabels: Record<string, string> = {
   tele: 'Telecommunications',
 };
 
-const getCategoryLabel = (value?: string | null) => (value ? categoryLabels[value] ?? value : '—');
+const getCategoryLabel = (value?: string | null, otherValue?: string | null) => {
+  if (!value) return '—';
+  if (value === 'oth' && otherValue) return otherValue;
+  return categoryLabels[value] ?? value;
+};
 const getSectorLabel = (value?: string | null) => (value ? sectorLabels[value] ?? value : '—');
 const getCountryLabel = (value?: string | null) => {
   if (!value) return '—';
@@ -231,11 +236,13 @@ export default function ReportsPage() {
           organization: attendee.organization,
           jobTitle: attendee.jobTitle,
           country: getCountryLabel(attendee.country),
-          category: getCategoryLabel(attendee.category),
+          category: getCategoryLabel(attendee.category, attendee.otherCategory),
+          otherCategory: attendee.otherCategory ?? '',
           sectorInterest: getSectorLabel(attendee.sectorInterest),
           attendance: attendee.attendance ?? '',
           needsVisa: attendee.needsVisa ? 'Yes' : 'No',
           siteVisit: attendee.siteVisit ? 'Yes' : 'No',
+          specialRequirements: attendee.specialRequirements ?? '',
           communicationPreference: attendee.communicationPreference,
           isCheckedIn: attendee.isCheckedIn ? 'Yes' : 'No',
           checkInTime: attendee.checkInTime ?? '',

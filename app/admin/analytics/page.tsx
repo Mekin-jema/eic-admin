@@ -40,7 +40,7 @@ import { useEicAdminStore } from '@/store/useEicAdminStore';
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 const categoryLabels: Record<string, string> = {
-  inv: 'International Investor',
+  inv: 'Investor',
   loc: 'Domestic Investor',
   gov: 'Government Official',
   dip: 'Diplomat / Development Partner',
@@ -58,6 +58,7 @@ const sectorLabels: Record<string, string> = {
   infra: 'Infrastructure and Construction',
   tour: 'Tourism and Hospitality',
   health: 'Healthcare and Pharmaceuticals',
+  edu: 'Education and Training',
   fin: 'Finance and Banking',
   mine: 'Mining and Natural Resources',
   prop: 'Real Estate and Property Development',
@@ -78,7 +79,11 @@ const getCountryLabel = (value?: string | null) => {
   return value;
 };
 
-const getCategoryLabel = (value?: string | null) => (value ? categoryLabels[value] ?? value : '—');
+const getCategoryLabel = (value?: string | null, otherValue?: string | null) => {
+  if (!value) return '—';
+  if (value === 'oth' && otherValue) return otherValue;
+  return categoryLabels[value] ?? value;
+};
 const getSectorLabel = (value?: string | null) => (value ? sectorLabels[value] ?? value : '—');
 
 export default function AnalyticsPage() {
@@ -121,7 +126,7 @@ export default function AnalyticsPage() {
     const counts: Record<string, number> = {};
     attendees.forEach((a) => {
       if (!a.category) return;
-      const label = getCategoryLabel(a.category);
+      const label = getCategoryLabel(a.category, a.otherCategory);
       counts[label] = (counts[label] || 0) + 1;
     });
     return counts;
