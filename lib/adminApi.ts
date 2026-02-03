@@ -47,7 +47,7 @@ export async function updateAttendeeById(id: string, data: Partial<AttendeeRegis
 
 
 // Simple API client for the EIC backend admin endpoints
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') || 'https://eic-backend-9heh.onrender.com/api';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') || 'https://eic-main-backend-2.onrender.com/api';
 
 const COOKIE_NAME = 'admin_token'
 
