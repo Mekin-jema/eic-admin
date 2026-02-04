@@ -105,6 +105,10 @@ export interface AttendeeRegistration {
   companySector?: string | null;
   businessLicenseUrl?: string | null;
   attendance?: string | null;
+  day1Attendance?: string | null;
+  day1Sessions?: string[] | null;
+  day2Attendance?: string | null;
+  day2Sessions?: string[] | null;
   needsVisa?: boolean | null;
   siteVisit?: boolean | null;
   passportCopyUrl?: string | null;

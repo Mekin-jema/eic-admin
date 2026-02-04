@@ -64,7 +64,10 @@ const FIELD_CONFIG = {
   ],
   registration: [
     { key: 'category', label: 'Category', icon: Tag, format: (val: string) => getCategoryLabel(val) },
-    { key: 'attendance', label: 'Attendance Type', icon: Users },
+    { key: 'day1Attendance', label: 'Day 1 Attendance', icon: Users, format: (val: string) => getDayAttendanceLabel(val) },
+    { key: 'day1Sessions', label: 'Day 1 Sessions', icon: Users, format: (val: string[]) => getSessionListLabel(val, day1SessionLabels) },
+    { key: 'day2Attendance', label: 'Day 2 Attendance', icon: Users, format: (val: string) => getDayAttendanceLabel(val) },
+    { key: 'day2Sessions', label: 'Day 2 Sessions', icon: Users, format: (val: string[]) => getSessionListLabel(val, day2SessionLabels) },
     { key: 'sectorInterest', label: 'Sector Interest', icon: Building, format: (val: string) => getSectorLabel(val) },
     { key: 'communicationPreference', label: 'Communication Preference', icon: Mail },
   ],
@@ -121,8 +124,34 @@ const sectorLabels: Record<string, string> = {
   tele: 'Telecommunications',
 };
 
+const dayAttendanceLabels: Record<string, string> = {
+  full: 'Full Day',
+  partial: 'Partial',
+  no: 'No',
+};
+
+const day1SessionLabels: Record<string, string> = {
+  'day1-panel-1': 'High-Level Panel 1: Ethiopia’s Economic Direction & Reform Commitments',
+  'day1-breakout-1': 'Breakout Session 1: Manufacturing – Scaling Industrial Competitiveness',
+  'day1-breakout-2': 'Breakout Session 2: Mining, Energy & Energy Transition',
+  'day1-breakout-3': 'Breakout Session 3: NDCs & COP Hosting – Climate Commitment as an Investment Opportunity',
+  'day1-matchmaking': 'Matchmaking Session',
+};
+
+const day2SessionLabels: Record<string, string> = {
+  'day2-panel-2': 'High-Level Panel 2: Growing in Ethiopia',
+  'day2-breakout-4': 'Breakout 4: Agriculture & Agro-Processing – From Farm to Market',
+  'day2-breakout-5': 'Breakout 5: Special Economic Zones as Engines of Investment',
+  'day2-breakout-6': 'Breakout 6: Financing Growth – Banking, Capital Markets & Investment Enablement',
+};
+
 const getCategoryLabel = (value?: string | null) => (value ? categoryLabels[value] ?? value : '—');
 const getSectorLabel = (value?: string | null) => (value ? sectorLabels[value] ?? value : '—');
+const getDayAttendanceLabel = (value?: string | null) => (value ? dayAttendanceLabels[value] ?? value : '—');
+const getSessionListLabel = (sessions?: string[] | null, labelMap?: Record<string, string>) => {
+  if (!sessions?.length) return '—';
+  return sessions.map((item) => labelMap?.[item] ?? item).join(', ');
+};
 
 const getCountryLabel = (value?: string | null) => {
   if (!value) return '—';
@@ -337,6 +366,14 @@ export default async function AttendeeDetailPage({
     
     if (!attendee) return notFound();
     
+    const legacyAttendance = attendee.attendance ?? null;
+    const derivedDay1Attendance = attendee.day1Attendance
+      ?? (legacyAttendance === 'day1' || legacyAttendance === 'both' ? 'full'
+        : legacyAttendance === 'day2' ? 'no' : undefined);
+    const derivedDay2Attendance = attendee.day2Attendance
+      ?? (legacyAttendance === 'day2' || legacyAttendance === 'both' ? 'full'
+        : legacyAttendance === 'day1' ? 'no' : undefined);
+
     const displayData = {
       ...attendee,
       fullName: `${attendee.firstName} ${attendee.lastName}`.trim(),
@@ -403,14 +440,7 @@ export default async function AttendeeDetailPage({
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <ActionButton icon={Edit} href={`/admin/attendees/${id}/edit`}>
-                    Edit Attendee
-                  </ActionButton>
-                  <ActionButton variant="outline" href={`/admin/attendees/${id}/check-in`}>
-                    Check-In Management
-                  </ActionButton>
-                </div>
+      
               </div>
             </CardContent>
           </Card>
